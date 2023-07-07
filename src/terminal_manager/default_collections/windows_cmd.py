@@ -1,6 +1,6 @@
 from ..collection import Collection
 from ..command import ActionCommand, SensorCommand
-from ..sensor import BinarySensor, NumberSensor, TextSensor
+from ..sensor import NumberSensor, TextSensor
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 windows_cmd = Collection(
@@ -22,18 +22,18 @@ windows_cmd = Collection(
         # TODO: WOL_SUPPORT
         # TODO: INTERFACE
         SensorCommand(
-            "for /f \"skip=1 delims=\" %i in ('wmic ComputerSystem get SystemType') "
+            "for /f \"skip=1 tokens=*\" %i in ('wmic ComputerSystem get SystemType') "
             + "do @echo %i",
-            [
+            sensors=[
                 TextSensor(
                     SensorName.MACHINE_TYPE,
                     SensorKey.MACHINE_TYPE,
-                )
+                ),
             ],
         ),
         SensorCommand(
             "hostname",
-            [
+            sensors=[
                 TextSensor(
                     SensorName.HOSTNAME,
                     SensorKey.HOSTNAME,
@@ -41,83 +41,94 @@ windows_cmd = Collection(
             ],
         ),
         SensorCommand(
-            "for /f \"skip=1 delims=\" %i in ('wmic OS get Caption') do @echo %i",
-            [
+            "for /f \"skip=1 tokens=*\" %i in ('wmic OS get Caption') do @echo %i",
+            sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
                     SensorKey.OS_NAME,
-                )
+                ),
             ],
         ),
         SensorCommand(
-            "for /f \"skip=1 delims=\" %i in ('wmic OS get Version') do @echo %i",
-            [
+            "for /f \"skip=1\" %i in ('wmic OS get Version') do @echo %i",
+            sensors=[
                 TextSensor(
                     SensorName.OS_VERSION,
                     SensorKey.OS_VERSION,
-                )
+                ),
             ],
         ),
         SensorCommand(
-            "for /f \"skip=1 delims=\" %i in ('wmic OS get OSArchitecture') do @echo %i",
-            [
+            "for /f \"skip=1\" %i in ('wmic OS get OSArchitecture') do @echo %i",
+            sensors=[
                 TextSensor(
                     SensorName.OS_ARCHITECTURE,
                     SensorKey.OS_ARCHITECTURE,
-                )
+                ),
             ],
         ),
         SensorCommand(
-            # TODO: Should return MB but number is too long
-            "for /f  %i in ('wmic ComputerSystem get TotalPhysicalMemory ^| "
-            + 'findstr /r "\\<[0-9][0-9]*\\>"\') '
-            + "do set /a mb=%i / 1024 / 1024",
-            [
+            "for /f \"skip=1\" %i in ('wmic ComputerSystem get TotalPhysicalMemory') "
+            + "do @echo %i",
+            sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
                     SensorKey.TOTAL_MEMORY,
-                    unit="MB",
-                )
+                    unit="B",
+                ),
             ],
         ),
         SensorCommand(
-            "for /f  %i in ('wmic OS get FreePhysicalMemory ^| "
-            + 'findstr /r "\\<[0-9][0-9]*\\>"\') '
-            + "do set /a mb=%i / 1024",
-            [
+            "for /f \"skip=1\" %i in ('wmic OS get FreePhysicalMemory') do @echo %i",
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.FREE_MEMORY,
                     SensorKey.FREE_MEMORY,
-                    unit="MB",
+                    unit="kB",
+                ),
+            ],
+        ),
+        SensorCommand(
+            'for /f "tokens=1,2" %i in (\'wmic LogicalDisk get DeviceID^, FreeSpace ^| '
+            + 'findstr ":"\') '
+            + "do @echo %i^|%j",
+            interval=300,
+            sensors=[
+                NumberSensor(
+                    SensorName.FREE_DISK_SPACE,
+                    SensorKey.FREE_DISK_SPACE,
+                    dynamic=True,
+                    separator="|",
+                    unit="B",
                 )
             ],
-            interval=30,
         ),
-        # TODO: FREE_DISK_SPACE
         SensorCommand(
             "for /f \"skip=1\" %i in ('wmic CPU get LoadPercentage') do @echo %i",
-            [
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.CPU_LOAD,
                     SensorKey.CPU_LOAD,
                     unit="%",
-                )
+                ),
             ],
-            interval=30,
         ),
         SensorCommand(
-            "for /f  %i in ('wmic /namespace:\\\\root\\wmi "
+            "for /f %i in ('wmic /namespace:\\\\root\\wmi "
             + "PATH MSAcpi_ThermalZoneTemperature get CurrentTemperature ^| "
             + 'findstr /r "\\<[0-9][0-9]*\\>"\') '
-            + "do set /a mb=(%i - 2732) / 10",
-            [
+            + "do @set /a x=(%i - 2732) / 10",
+            interval=60,
+            sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     unit="°C",
+                    float=True,
                 )
             ],
-            interval=60,
         ),
     ],
 )

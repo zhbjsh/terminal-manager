@@ -20,7 +20,7 @@ linux = Collection(
     [
         SensorCommand(
             "cat /sys/class/net/{interface}/address",
-            [
+            sensors=[
                 TextSensor(
                     SensorName.MAC_ADDRESS,
                     SensorKey.MAC_ADDRESS,
@@ -28,8 +28,9 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "cat /sys/class/net/{interface}/device/power/wakeup",
-            [
+            "file=/sys/class/net/{interface}/device/power/wakeup; "
+            + "[[ ! -f $file ]] || cat $file",
+            sensors=[
                 BinarySensor(
                     SensorName.WOL_SUPPORT,
                     SensorKey.WOL_SUPPORT,
@@ -38,8 +39,8 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "/sbin/route -n | awk '($1 == \"0.0.0.0\") {{print $NF; exit}}'",
-            [
+            "/sbin/route -n | awk '/^0.0.0.0/ {{print $NF}}'",
+            sensors=[
                 TextSensor(
                     SensorName.INTERFACE,
                     SensorKey.INTERFACE,
@@ -47,19 +48,19 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "uname -a | awk '{{print $1; print $3; print $2; print $(NF-1);}}'",
-            [
+            "uname -a | awk '{{print $1; print $2; print $3; print $(NF-1)}}'",
+            sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
                     SensorKey.OS_NAME,
                 ),
                 TextSensor(
-                    SensorName.OS_VERSION,
-                    SensorKey.OS_VERSION,
-                ),
-                TextSensor(
                     SensorName.HOSTNAME,
                     SensorKey.HOSTNAME,
+                ),
+                TextSensor(
+                    SensorName.OS_VERSION,
+                    SensorKey.OS_VERSION,
                 ),
                 TextSensor(
                     SensorName.MACHINE_TYPE,
@@ -69,62 +70,61 @@ linux = Collection(
         ),
         # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "free -m | awk 'tolower($0)~/mem/ {{print $2}}'",
-            [
+            "free -k | awk '/^Mem:/ {{print $2}}'",
+            sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
                     SensorKey.TOTAL_MEMORY,
-                    unit="MB",
+                    unit="KiB",
                 )
             ],
         ),
         SensorCommand(
-            "free -m | awk 'tolower($0)~/mem/ {{print $4}}'",
-            [
+            "free -k | awk '/^Mem:/ {{print $4}}'",
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.FREE_MEMORY,
                     SensorKey.FREE_MEMORY,
-                    unit="MB",
+                    unit="KiB",
                 )
             ],
-            interval=30,
         ),
         SensorCommand(
-            "df -m | awk '/^\\/dev\\// {{print $6 \"|\" $4}}'",
-            [
+            "df -k | awk '/^\\/dev\\// {{print $6 \"|\" $4}}'",
+            interval=300,
+            sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
                     SensorKey.FREE_DISK_SPACE,
                     dynamic=True,
                     separator="|",
-                    unit="MB",
+                    unit="KiB",
                 )
             ],
-            interval=300,
         ),
         SensorCommand(
-            "top -bn1 | head -n3 | awk 'tolower($0)~/cpu/ "
-            + "{{for(i=1;i<NF;i++){{if(tolower($i)~/cpu/)"
-            + "{{idle=$(i+7); print 100-idle;}}}}}}'",
-            [
+            "top -bn1 | awk 'NR<4 && tolower($0)~/cpu/ {{print 100-$8}}'",
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.CPU_LOAD,
                     SensorKey.CPU_LOAD,
                     unit="%",
                 )
             ],
-            interval=30,
         ),
         SensorCommand(
             "echo $(($(cat /sys/class/thermal/thermal_zone0/temp) / 1000))",
-            [
+            interval=60,
+            sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     unit="°C",
+                    float=True,
                 )
             ],
-            interval=60,
         ),
     ],
 )

@@ -1,6 +1,6 @@
 from ..collection import Collection
 from ..command import ActionCommand, SensorCommand
-from ..sensor import BinarySensor, NumberSensor, TextSensor
+from ..sensor import NumberSensor, TextSensor
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 windows_ps = Collection(
@@ -26,7 +26,7 @@ windows_ps = Collection(
             + "Select Name, SystemType;"
             + "$x.Name;"
             + "$x.SystemType;",
-            [
+            sensors=[
                 TextSensor(
                     SensorName.HOSTNAME,
                     SensorKey.HOSTNAME,
@@ -43,7 +43,7 @@ windows_ps = Collection(
             + "$x.Caption;"
             + "$x.Version;"
             + "$x.OSArchitecture;",
-            [
+            sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
                     SensorKey.OS_NAME,
@@ -61,69 +61,70 @@ windows_ps = Collection(
         SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
             + "Select TotalPhysicalMemory;"
-            + "[math]::Round($x.TotalPhysicalMemory/1MB);",
-            [
+            + "$x.TotalPhysicalMemory;",
+            sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
                     SensorKey.TOTAL_MEMORY,
-                    unit="MB",
+                    unit="B",
                 )
             ],
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_OperatingSystem | "
             + "Select FreePhysicalMemory;"
-            + "[math]::Round($x.FreePhysicalMemory/1KB);",
-            [
+            + "$x.FreePhysicalMemory;",
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.FREE_MEMORY,
                     SensorKey.FREE_MEMORY,
-                    unit="MB",
+                    unit="kB",
                 )
             ],
-            interval=30,
         ),
         SensorCommand(
             "Get-CimInstance Win32_LogicalDisk | "
             + "Select DeviceID, FreeSpace | ForEach-Object "
-            + '{{$_.DeviceID+"|"+[math]::Round($_.FreeSpace/1MB)}}',
-            [
+            + '{{$_.DeviceID + "|" + $_.FreeSpace}}',
+            interval=300,
+            sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
                     SensorKey.FREE_DISK_SPACE,
                     dynamic=True,
                     separator="|",
-                    unit="MB",
+                    unit="B",
                 )
             ],
-            interval=300,
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_Processor | "
             + "Select LoadPercentage;"
             + "$x.LoadPercentage;",
-            [
+            interval=30,
+            sensors=[
                 NumberSensor(
                     SensorName.CPU_LOAD,
                     SensorKey.CPU_LOAD,
                     unit="%",
                 )
             ],
-            interval=30,
         ),
         SensorCommand(
             "$x = Get-CimInstance msacpi_thermalzonetemperature "
             + '-namespace "root/wmi" | '
             + "Select CurrentTemperature;"
             + "($x.CurrentTemperature - 2732) / 10;",
-            [
+            interval=60,
+            sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     unit="°C",
+                    float=True,
                 )
             ],
-            interval=60,
         ),
     ],
 )

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import KW_ONLY, dataclass, field
+import re
 from typing import TYPE_CHECKING, Any
 
 from .event import Event
@@ -62,11 +62,11 @@ class Sensor:
         self.child_sensors.remove(child)
         self.on_child_removed.notify(self, child)
 
-    def _render(self, value_string: str) -> str:
+    def _render(self, data: str) -> str:
         if self.renderer:
-            return self.renderer(value_string)
+            data = self.renderer(data)
 
-        return value_string
+        return data.strip()
 
     def _convert(self, value_string: str) -> Any:
         return value_string
@@ -85,7 +85,7 @@ class Sensor:
             value = self._convert(value_string)
             self._validate(value)
         except Exception as exc:  # pylint: disable=broad-except
-            manager.logger.warning("%s: %s => %s", manager.name, self.key, exc)
+            manager.logger.debug("%s: %s => %s", manager.name, self.key, exc)
             self.value = None
             return
 
@@ -99,9 +99,9 @@ class Sensor:
             return
 
         dynamic_data_list = [
-            DynamicData(self.name, self.key, *(field.strip() for field in row))
-            for row in (line.split(self.separator, 2) for line in data)
-            if len(row) >= 2
+            DynamicData(self.name, self.key, *fields)
+            for fields in (line.split(self.separator, 2) for line in data)
+            if len(fields) >= 2
         ]
 
         dynamic_data_by_key = {
@@ -120,7 +120,7 @@ class Sensor:
         for child in self.child_sensors:
             if child.key in dynamic_data_by_key:
                 dynamic_data = dynamic_data_by_key[child.key]
-                child.update(manager, dynamic_data.value_string)
+                child.update(manager, dynamic_data.data)
             else:
                 self._remove_child(child)
 
@@ -150,7 +150,7 @@ class Sensor:
             return
 
         await manager.async_execute_command(
-            command, context={"id": self.id, "value": value}
+            command, variables={"id": self.id, "value": value}
         )
 
 
@@ -186,22 +186,22 @@ class NumberSensor(Sensor):
     """The NumberSensor class."""
 
     _: KW_ONLY
-    integer: bool = False
+    float: bool = False
     minimum: int | float | None = None
     maximum: int | float | None = None
 
     def _convert(self, value_string: str) -> int | float:
-        if self.integer:
-            return int(float(value_string))
+        if self.float:
+            return float(value_string)
 
-        return float(value_string)
+        return int(float(value_string))
 
     def _validate(self, value: Any) -> None:
-        if self.integer and not isinstance(value, int):
-            raise TypeError(f"{value} is {type(value)} and not {int}")
-
-        if not self.integer and not isinstance(value, float):
+        if self.float and not isinstance(value, float):
             raise TypeError(f"{value} is {type(value)} and not {float}")
+
+        if not self.float and not isinstance(value, int):
+            raise TypeError(f"{value} is {type(value)} and not {int}")
 
         if self.minimum and value < self.minimum:
             raise ValueError(f"{value} is smaller then {self.minimum}")
@@ -269,12 +269,12 @@ class DynamicData:
         self,
         parent_name: str | None,
         parent_key: str,
-        data_id: str,
-        data_value_string: str,
-        data_name: str | None = None,
+        id_field: str,
+        data_field: str,
+        name_field: str | None = None,
     ) -> None:
-        name = data_name or data_id
-        self.id = data_id
+        self.id = id_field.strip()
+        name = name_field.strip() if name_field else self.id
         self.key = f"{parent_key}_{name_to_key(name)}"
         self.name = f"{parent_name} {name}" if parent_name else name
-        self.value_string = data_value_string
+        self.data = data_field

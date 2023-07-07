@@ -61,17 +61,17 @@ class Manager(Collection, Locker):
         raise CommandError("Not implemented")
 
     async def async_execute_command(
-        self, command: Command, context: dict | None = None
+        self, command: Command, variables: dict | None = None
     ) -> CommandOutput:
         """Execute a command.
 
         Raises:
             CommandError
         """
-        await command.async_execute(self, context)
+        await command.async_execute(self, variables)
 
     async def async_run_action(
-        self, key: str, context: dict | None = None
+        self, key: str, variables: dict | None = None
     ) -> CommandOutput:
         """Run an action.
 
@@ -79,7 +79,7 @@ class Manager(Collection, Locker):
             CommandError
         """
         command = self.get_action_command(key)
-        return await self.async_execute_command(command, context)
+        return await self.async_execute_command(command, variables)
 
     async def async_poll_sensor(
         self, key: str, *, raise_errors: bool = False

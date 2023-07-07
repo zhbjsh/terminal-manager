@@ -35,48 +35,50 @@ class Command:
 
         return string
 
-    def get_context_keys(self, manager: Manager) -> set[str]:
-        """Get context keys."""
+    def get_variable_keys(self, manager: Manager) -> set[str]:
+        """Get variable keys."""
         return {key for key in self.field_keys if key not in manager.sensors_by_key}
 
     def get_sensor_keys(self, manager: Manager) -> set[str]:
         """Get sensor keys."""
         return {key for key in self.field_keys if key in manager.sensors_by_key}
 
-    async def async_format(self, manager: Manager, context: dict | None = None) -> str:
+    async def async_format(
+        self, manager: Manager, variables: dict | None = None
+    ) -> str:
         """Format the string.
 
         Raises:
             CommandError
         """
-        context = {**context} if context else {}
+        variables = {**variables} if variables else {}
         missing_sensor_keys = set()
 
-        for key in self.get_context_keys(manager):
-            if key not in context:
-                raise CommandError(f"Context key {key} is missing")
+        for key in self.get_variable_keys(manager):
+            if key not in variables:
+                raise CommandError(f"Variable {key} is missing")
 
         for key in self.get_sensor_keys(manager):
-            if key not in context:
+            if key not in variables:
                 sensor = manager.get_sensor(key)
                 if sensor.value is not None:
-                    context[sensor.key] = sensor.value
+                    variables[sensor.key] = sensor.value
                 else:
                     missing_sensor_keys.add(sensor.key)
 
         for sensor in await manager.async_poll_sensors(missing_sensor_keys):
             if sensor.value is not None:
-                context[sensor.key] = sensor.value
+                variables[sensor.key] = sensor.value
             else:
                 raise CommandError(f"Value of sensor {sensor.key} is None")
 
         try:
-            return self._render(self.string.format(**context))
+            return self._render(self.string.format(**variables))
         except Exception as exc:
             raise CommandError("Failed to generate string ({exc})") from exc
 
     async def async_execute(
-        self, manager: Manager, context: dict | None = None
+        self, manager: Manager, variables: dict | None = None
     ) -> CommandOutput:
         """Execute.
 
@@ -84,7 +86,7 @@ class Command:
             CommandError
         """
         try:
-            string = await self.async_format(manager, context)
+            string = await self.async_format(manager, variables)
         except CommandError as exc:
             manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
             raise
@@ -124,9 +126,9 @@ class ActionCommand(Command):
 class SensorCommand(Command):
     """The SensorCommand class."""
 
-    sensors: list[Sensor] = field(default_factory=list)
     _: KW_ONLY
     interval: int | None = None
+    sensors: list[Sensor] = field(default_factory=list)
 
     def __post_init__(self):
         self.last_update: float | None = None
@@ -163,10 +165,10 @@ class SensorCommand(Command):
             sensor.update(manager, data[i] if len(data) > i else None)
 
     async def async_execute(
-        self, manager: Manager, context: dict | None = None
+        self, manager: Manager, variables: dict | None = None
     ) -> CommandOutput:
         try:
-            output = await super().async_execute(manager, context)
+            output = await super().async_execute(manager, variables)
         except CommandError:
             self.update_sensors(manager, None)
             raise
