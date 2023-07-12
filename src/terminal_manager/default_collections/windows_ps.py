@@ -19,7 +19,7 @@ windows_ps = Collection(
     ],
     [
         # TODO: MAC_ADDRESS
-        # TODO: WOL_SUPPORT
+        # TODO: WAKE_ON_LAN
         # TODO: INTERFACE
         SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
@@ -123,6 +123,16 @@ windows_ps = Collection(
                     SensorKey.TEMPERATURE,
                     unit="°C",
                     float=True,
+                )
+            ],
+        ),
+        SensorCommand(
+            "Get-Process | Measure | ForEach-Object {$_.Count}",
+            interval=60,
+            sensors=[
+                NumberSensor(
+                    SensorName.PROCESSES,
+                    SensorKey.PROCESSES,
                 )
             ],
         ),

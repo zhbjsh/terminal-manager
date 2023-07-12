@@ -17,8 +17,6 @@ SENSOR_PLACEHOLDER_KEY = "_"
 
 @dataclass
 class Command:
-    """The Command class."""
-
     string: str
     _: KW_ONLY
     timeout: float | None = None
@@ -26,21 +24,19 @@ class Command:
 
     @property
     def field_keys(self) -> list[str]:
-        """Field keys."""
         return {key for _, key, _, _ in Formatter().parse(self.string) if key}
 
     def _render(self, string: str) -> str:
         if self.renderer:
             return self.renderer(string)
-
         return string
 
     def get_variable_keys(self, manager: Manager) -> set[str]:
-        """Get variable keys."""
+        """Get the variable keys."""
         return {key for key in self.field_keys if key not in manager.sensors_by_key}
 
     def get_sensor_keys(self, manager: Manager) -> set[str]:
-        """Get sensor keys."""
+        """Get the sensor keys."""
         return {key for key in self.field_keys if key in manager.sensors_by_key}
 
     async def async_format(
@@ -111,8 +107,6 @@ class Command:
 
 @dataclass
 class ActionCommand(Command):
-    """The ActionCommand class."""
-
     name: str | None = None
     key: str | None = None
     _: KW_ONLY
@@ -124,8 +118,6 @@ class ActionCommand(Command):
 
 @dataclass
 class SensorCommand(Command):
-    """The SensorCommand class."""
-
     _: KW_ONLY
     interval: int | None = None
     sensors: list[Sensor] = field(default_factory=list)
@@ -135,7 +127,6 @@ class SensorCommand(Command):
 
     @property
     def sensors_by_key(self) -> dict[str, Sensor]:
-        """Sensors by key."""
         return {
             sensor.key: sensor
             for command_sensor in self.sensors
@@ -151,7 +142,7 @@ class SensorCommand(Command):
         ]
 
     def update_sensors(self, manager: Manager, output: CommandOutput | None) -> None:
-        """Update sensors."""
+        """Update the sensors."""
         if output and output.code == 0:
             self.last_update = output.timestamp
             data = output.stdout

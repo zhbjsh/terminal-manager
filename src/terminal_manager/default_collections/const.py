@@ -11,7 +11,7 @@ class ActionName:
 class SensorKey:
     INTERFACE = "interface"
     MAC_ADDRESS = "mac_address"
-    WOL_SUPPORT = "wol_support"
+    WAKE_ON_LAN = "wake_on_lan"
     MACHINE_TYPE = "machine_type"
     HOSTNAME = "hostname"
     OS_NAME = "os_name"
@@ -22,12 +22,13 @@ class SensorKey:
     CPU_LOAD = "cpu_load"
     FREE_DISK_SPACE = "free_disk_space"
     TEMPERATURE = "temperature"
+    PROCESSES = "processes"
 
 
 class SensorName:
     INTERFACE = "Interface"
     MAC_ADDRESS = "MAC Address"
-    WOL_SUPPORT = "Wake on LAN Support"
+    WAKE_ON_LAN = "Wake on LAN"
     MACHINE_TYPE = "Machine Type"
     HOSTNAME = "Hostname"
     OS_NAME = "OS Name"
@@ -38,3 +39,4 @@ class SensorName:
     CPU_LOAD = "CPU Load"
     FREE_DISK_SPACE = "Free Disk Space"
     TEMPERATURE = "Temperature"
+    PROCESSES = "Processes"

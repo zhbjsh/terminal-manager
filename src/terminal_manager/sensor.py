@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import KW_ONLY, dataclass, field
-import re
 from typing import TYPE_CHECKING, Any
 
 from .event import Event
@@ -19,8 +19,6 @@ FALSE_STRINGS = ["false", "disabled", "off", "inactive", "0"]
 
 @dataclass
 class Sensor:
-    """The Sensor class."""
-
     name: str | None = None
     key: str | None = None
     _: KW_ONLY
@@ -43,12 +41,10 @@ class Sensor:
 
     @property
     def controllable(self) -> bool:
-        """Controllable."""
         return self.command_set is not None
 
     @property
     def child_sensors_by_key(self) -> dict[str, Sensor]:
-        """Child sensors by key."""
         return {child.key: child for child in self.child_sensors}
 
     def _get_control_command(self, _: Any) -> Command | None:
@@ -136,7 +132,7 @@ class Sensor:
         self.on_update.notify(self)
 
     async def async_set(self, manager: Manager, value: Any) -> None:
-        """Set.
+        """Set a value.
 
         Raises:
             TypeError
@@ -156,8 +152,6 @@ class Sensor:
 
 @dataclass
 class TextSensor(Sensor):
-    """The TextSensor class."""
-
     _: KW_ONLY
     minimum: int | None = None
     maximum: int | None = None
@@ -183,8 +177,6 @@ class TextSensor(Sensor):
 
 @dataclass
 class NumberSensor(Sensor):
-    """The NumberSensor class."""
-
     _: KW_ONLY
     float: bool = False
     minimum: int | float | None = None
@@ -212,8 +204,6 @@ class NumberSensor(Sensor):
 
 @dataclass
 class BinarySensor(Sensor):
-    """The BinarySensor class."""
-
     _: KW_ONLY
     command_on: Command | None = None
     command_off: Command | None = None
@@ -263,8 +253,6 @@ class BinarySensor(Sensor):
 
 
 class DynamicData:
-    """The DynamicData class."""
-
     def __init__(
         self,
         parent_name: str | None,

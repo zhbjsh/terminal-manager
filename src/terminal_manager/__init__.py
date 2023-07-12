@@ -1,9 +1,9 @@
 """Terminal manager."""
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-import logging
 from typing import Any
 
 from .collection import Collection
@@ -11,8 +11,8 @@ from .command import ActionCommand, Command, SensorCommand
 from .default_collections import ActionKey, SensorKey
 from .errors import CommandError
 from .event import Event
-from .locker import Locker
 from .sensor import BinarySensor, NumberSensor, Sensor, TextSensor
+from .synchronizer import Synchronizer
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,17 +22,13 @@ DEFAULT_COMMAND_TIMEOUT = 15
 
 @dataclass(frozen=True)
 class CommandOutput:
-    """The CommandOutput class."""
-
     timestamp: float
     stdout: list[str]
     stderr: list[str]
     code: int
 
 
-class Manager(Collection, Locker):
-    """The Manager class."""
-
+class Manager(Collection, Synchronizer):
     def __init__(
         self,
         *,
@@ -41,14 +37,55 @@ class Manager(Collection, Locker):
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
     ) -> None:
-        Locker.__init__(self)
-        Collection.__init__(self, name)
+        Synchronizer.__init__(self)
+        Collection.__init__(
+            self,
+            name,
+            collection.action_commands if collection else None,
+            collection.sensor_commands if collection else None,
+        )
         self.command_timeout = command_timeout
         self.logger = logger
 
-        if collection:
-            self.set_action_commands(collection.action_commands)
-            self.set_sensor_commands(collection.sensor_commands)
+    @property
+    def hostname(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.HOSTNAME):
+            return sensor.last_known_value
+
+    @property
+    def os_name(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.OS_NAME):
+            return sensor.last_known_value
+
+    @property
+    def os_version(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.OS_VERSION):
+            return sensor.last_known_value
+
+    @property
+    def os_architecture(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.OS_ARCHITECTURE):
+            return sensor.last_known_value
+
+    @property
+    def machine_type(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.MACHINE_TYPE):
+            return sensor.last_known_value
+
+    @property
+    def interface(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.INTERFACE):
+            return sensor.last_known_value
+
+    @property
+    def mac_address(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.MAC_ADDRESS):
+            return sensor.last_known_value
+
+    @property
+    def wake_on_lan(self) -> bool | None:
+        if sensor := self.sensors_by_key.get(SensorKey.WAKE_ON_LAN):
+            return sensor.last_known_value
 
     async def async_execute_command_string(
         self, string: str, command_timeout: int | None = None
@@ -87,7 +124,7 @@ class Manager(Collection, Locker):
         """Poll a sensor.
 
         Raises:
-            CommandError (`raise_errors`)
+            CommandError (only with `raise_errors=True`)
         """
         sensors = await self.async_poll_sensors([key], raise_errors=raise_errors)
         return sensors[0]
@@ -98,7 +135,7 @@ class Manager(Collection, Locker):
         """Poll multiple sensors.
 
         Raises:
-            CommandError (`raise_errors`)
+            CommandError (only with `raise_errors=True`)
         """
         sensors = [self.get_sensor(key) for key in keys]
         commands = [self.get_sensor_command(key) for key in set(keys)]
@@ -115,12 +152,12 @@ class Manager(Collection, Locker):
     async def async_set_sensor_value(
         self, key: str, value: Any, *, raise_errors: bool = False
     ) -> Sensor:
-        """Set the value of a sensor.
+        """Set the value of a controllable sensor.
 
         Raises:
-            TypeError (`raise_errors`)
-            ValueError (`raise_errors`)
-            CommandError (`raise_errors`)
+            TypeError (only with `raise_errors=True`)
+            ValueError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors=True`)
         """
         sensors = await self.async_set_sensor_values(
             [key], [value], raise_errors=raise_errors
@@ -130,12 +167,12 @@ class Manager(Collection, Locker):
     async def async_set_sensor_values(
         self, keys: Sequence[str], values: Sequence[Any], *, raise_errors: bool = False
     ) -> list[Sensor]:
-        """Set the value of multiple sensors.
+        """Set the value of multiple controllable sensors.
 
         Raises:
-            TypeError (`raise_errors`)
-            ValueError (`raise_errors`)
-            CommandError (`raise_errors`)
+            TypeError (only with `raise_errors=True`)
+            ValueError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors=True`)
         """
         sensors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
 

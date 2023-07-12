@@ -19,7 +19,7 @@ windows_cmd = Collection(
     ],
     [
         # TODO: MAC_ADDRESS
-        # TODO: WOL_SUPPORT
+        # TODO: WAKE_ON_LAN
         # TODO: INTERFACE
         SensorCommand(
             "for /f \"skip=1 tokens=*\" %i in ('wmic ComputerSystem get SystemType') "
@@ -127,6 +127,16 @@ windows_cmd = Collection(
                     SensorKey.TEMPERATURE,
                     unit="°C",
                     float=True,
+                )
+            ],
+        ),
+        SensorCommand(
+            'wmic process get processId | findstr /r "\\<[0-9][0-9]*\\>" | find /c /v ""',
+            interval=60,
+            sensors=[
+                NumberSensor(
+                    SensorName.PROCESSES,
+                    SensorKey.PROCESSES,
                 )
             ],
         ),

@@ -1,2 +1,2 @@
 class CommandError(Exception):
-    """Command error."""
+    """Error to indicate that the command execution failed."""

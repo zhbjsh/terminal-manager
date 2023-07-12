@@ -1,25 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from collections.abc import Coroutine
 from functools import wraps
-import inspect
 
 
 def locked(coro: Coroutine):
-    """The locked decorator."""
-
     @wraps(coro)
-    async def wrapper(instance: Locker, *args, **kwargs):
-        async with instance.lock:
-            return await coro(instance, *args, **kwargs)
+    async def wrapper(obj: Synchronizer, *args, **kwargs):
+        async with obj.lock:
+            return await coro(obj, *args, **kwargs)
 
     return wrapper
 
 
 class AsyncRLock(asyncio.Lock):
-    """The AsyncRLock class."""
-
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._task = None
@@ -40,9 +36,7 @@ class AsyncRLock(asyncio.Lock):
             self._task = None
 
 
-class Locker:
-    """The Locker class."""
-
+class Synchronizer:
     def __init__(self) -> None:
         self.lock = AsyncRLock()
 

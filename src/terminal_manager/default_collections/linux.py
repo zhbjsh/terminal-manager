@@ -32,8 +32,8 @@ linux = Collection(
             + "[[ ! -f $file ]] || cat $file",
             sensors=[
                 BinarySensor(
-                    SensorName.WOL_SUPPORT,
-                    SensorKey.WOL_SUPPORT,
+                    SensorName.WAKE_ON_LAN,
+                    SensorKey.WAKE_ON_LAN,
                     payload_on="enabled",
                 )
             ],
@@ -123,6 +123,16 @@ linux = Collection(
                     SensorKey.TEMPERATURE,
                     unit="°C",
                     float=True,
+                )
+            ],
+        ),
+        SensorCommand(
+            "ps -e --no-headers | wc -l",
+            interval=60,
+            sensors=[
+                NumberSensor(
+                    SensorName.PROCESSES,
+                    SensorKey.PROCESSES,
                 )
             ],
         ),

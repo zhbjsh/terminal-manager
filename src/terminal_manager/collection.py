@@ -5,8 +5,6 @@ from .sensor import Sensor
 
 
 class Collection:
-    """The Collection class."""
-
     action_commands: list[ActionCommand]
     sensor_commands: list[SensorCommand]
 
@@ -22,12 +20,10 @@ class Collection:
 
     @property
     def action_commands_by_key(self) -> dict[str, ActionCommand]:
-        """Action commands by key."""
         return {command.key: command for command in self.action_commands}
 
     @property
     def sensor_commands_by_sensor_key(self) -> dict[str, SensorCommand]:
-        """Sensor commands by sensor key."""
         return {
             key: command
             for command in self.sensor_commands
@@ -36,7 +32,6 @@ class Collection:
 
     @property
     def sensors_by_key(self) -> dict[str, Sensor]:
-        """Sensors by key."""
         return {
             key: sensor
             for command in self.sensor_commands
@@ -44,13 +39,13 @@ class Collection:
         }
 
     def set_action_commands(self, action_commands: list[ActionCommand]) -> None:
-        """Set action commands."""
+        """Set the action commands."""
         self.action_commands = []
         for command in action_commands:
             self.add_action_command(command)
 
     def set_sensor_commands(self, sensor_commands: list[SensorCommand]) -> None:
-        """Set sensor commands."""
+        """Set the sensor commands."""
         self.sensor_commands = []
         for command in sensor_commands:
             self.add_sensor_command(command)
@@ -96,7 +91,7 @@ class Collection:
     def remove_sensor(self, key: str) -> None:
         """Remove a sensor.
 
-        Remove the sensor command as well if it doesnt have any other sensors.
+        Remove the sensor command if it doesnt have any other sensors.
         """
         command = self.get_sensor_command(key)
         command.remove_sensor(key)
