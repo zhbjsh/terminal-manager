@@ -2,8 +2,6 @@ from collections.abc import Callable
 
 
 class Event:
-    """The Event class."""
-
     def __init__(self) -> None:
         self._subscribers: list[Callable] = []
 
