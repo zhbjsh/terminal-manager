@@ -20,14 +20,14 @@ windows_ps = Collection(
     [
         SensorCommand(
             "$x = Get-NetAdapterPowerManagement "
-            + '-Name "{interface}" | '
+            + '-Name "{network_interface}" | '
             + "Select WakeOnMagicPacket; "
             + "$x.WakeOnMagicPacket",
             sensors=[
                 BinarySensor(
                     SensorName.WAKE_ON_LAN,
                     SensorKey.WAKE_ON_LAN,
-                    payload_on="enabled",
+                    payload_on="Enabled",
                 )
             ],
         ),
@@ -47,8 +47,8 @@ windows_ps = Collection(
                     SensorKey.MAC_ADDRESS,
                 ),
                 TextSensor(
-                    SensorName.INTERFACE,
-                    SensorKey.INTERFACE,
+                    SensorName.NETWORK_INTERFACE,
+                    SensorKey.NETWORK_INTERFACE,
                 ),
             ],
         ),
@@ -157,7 +157,7 @@ windows_ps = Collection(
             ],
         ),
         SensorCommand(
-            "Get-Process | Measure | ForEach-Object {$_.Count}",
+            "Get-Process | Measure | ForEach-Object {{$_.Count}}",
             interval=60,
             sensors=[
                 NumberSensor(

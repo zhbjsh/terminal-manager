@@ -19,7 +19,7 @@ linux = Collection(
     ],
     [
         SensorCommand(
-            "cat /sys/class/net/{interface}/address",
+            "cat /sys/class/net/{network_interface}/address",
             sensors=[
                 TextSensor(
                     SensorName.MAC_ADDRESS,
@@ -28,7 +28,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "file=/sys/class/net/{interface}/device/power/wakeup; "
+            "file=/sys/class/net/{network_interface}/device/power/wakeup; "
             + "[[ ! -f $file ]] || cat $file",
             sensors=[
                 BinarySensor(
@@ -42,8 +42,8 @@ linux = Collection(
             "/sbin/route -n | awk '/^0.0.0.0/ {{print $NF}}'",
             sensors=[
                 TextSensor(
-                    SensorName.INTERFACE,
-                    SensorKey.INTERFACE,
+                    SensorName.NETWORK_INTERFACE,
+                    SensorKey.NETWORK_INTERFACE,
                 )
             ],
         ),

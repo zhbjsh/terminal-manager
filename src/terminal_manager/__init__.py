@@ -76,8 +76,8 @@ class Manager(Collection, Synchronizer):
             return sensor.last_known_value
 
     @property
-    def interface(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.INTERFACE):
+    def network_interface(self) -> str | None:
+        if sensor := self.sensors_by_key.get(SensorKey.NETWORK_INTERFACE):
             return sensor.last_known_value
 
     @property

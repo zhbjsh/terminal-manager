@@ -9,7 +9,7 @@ class ActionName:
 
 
 class SensorKey:
-    INTERFACE = "interface"
+    NETWORK_INTERFACE = "network_interface"
     MAC_ADDRESS = "mac_address"
     WAKE_ON_LAN = "wake_on_lan"
     MACHINE_TYPE = "machine_type"
@@ -26,7 +26,7 @@ class SensorKey:
 
 
 class SensorName:
-    INTERFACE = "Interface"
+    NETWORK_INTERFACE = "Network Interface"
     MAC_ADDRESS = "MAC Address"
     WAKE_ON_LAN = "Wake on LAN"
     MACHINE_TYPE = "Machine Type"

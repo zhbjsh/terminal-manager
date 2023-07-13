@@ -34,8 +34,8 @@ windows_cmd = Collection(
                     SensorKey.MAC_ADDRESS,
                 ),
                 TextSensor(
-                    SensorName.INTERFACE,
-                    SensorKey.INTERFACE,
+                    SensorName.NETWORK_INTERFACE,
+                    SensorKey.NETWORK_INTERFACE,
                 ),
             ],
         ),
