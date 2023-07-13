@@ -8,7 +8,7 @@ version = "0.5.0"
 authors = [
   { name="zhbjsh", email="zhbjsh@outlook.com" },
 ]
-description = "Control and monitor devices with terminal commands"
+description = "Use terminal commands to control and monitor devices"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
