@@ -1,6 +1,6 @@
 from ..collection import Collection
 from ..command import ActionCommand, SensorCommand
-from ..sensor import NumberSensor, TextSensor
+from ..sensor import BinarySensor, NumberSensor, TextSensor
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 windows_ps = Collection(
@@ -18,14 +18,45 @@ windows_ps = Collection(
         ),
     ],
     [
-        # TODO: MAC_ADDRESS
-        # TODO: WAKE_ON_LAN
-        # TODO: INTERFACE
+        SensorCommand(
+            "$x = Get-NetAdapterPowerManagement "
+            + '-Name "{interface}" | '
+            + "Select WakeOnMagicPacket; "
+            + "$x.WakeOnMagicPacket",
+            sensors=[
+                BinarySensor(
+                    SensorName.WAKE_ON_LAN,
+                    SensorKey.WAKE_ON_LAN,
+                    payload_on="enabled",
+                )
+            ],
+        ),
+        SensorCommand(
+            "$y = Get-CimInstance Win32_IP4RouteTable "
+            + "-Filter \"Destination='0.0.0.0'\" | "
+            + "Select InterfaceIndex; "
+            + "$x = Get-CimInstance Win32_NetworkAdapter "
+            + "-Property NetConnectionID, InterfaceIndex, MACAddress "
+            + '-Filter "InterfaceIndex=$($y.InterfaceIndex)" | '
+            + "Select MACAddress, NetConnectionID; "
+            + "$x.MACAddress; "
+            + "$x.NetConnectionID",
+            sensors=[
+                TextSensor(
+                    SensorName.MAC_ADDRESS,
+                    SensorKey.MAC_ADDRESS,
+                ),
+                TextSensor(
+                    SensorName.INTERFACE,
+                    SensorKey.INTERFACE,
+                ),
+            ],
+        ),
         SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
-            + "Select Name, SystemType;"
-            + "$x.Name;"
-            + "$x.SystemType;",
+            + "Select Name, SystemType; "
+            + "$x.Name; "
+            + "$x.SystemType",
             sensors=[
                 TextSensor(
                     SensorName.HOSTNAME,
@@ -39,10 +70,10 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_OperatingSystem | "
-            + "Select Caption, Version, OSArchitecture;"
-            + "$x.Caption;"
-            + "$x.Version;"
-            + "$x.OSArchitecture;",
+            + "Select Caption, Version, OSArchitecture; "
+            + "$x.Caption; "
+            + "$x.Version; "
+            + "$x.OSArchitecture",
             sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
@@ -60,8 +91,8 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
-            + "Select TotalPhysicalMemory;"
-            + "$x.TotalPhysicalMemory;",
+            + "Select TotalPhysicalMemory; "
+            + "$x.TotalPhysicalMemory",
             sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
@@ -72,8 +103,8 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_OperatingSystem | "
-            + "Select FreePhysicalMemory;"
-            + "$x.FreePhysicalMemory;",
+            + "Select FreePhysicalMemory; "
+            + "$x.FreePhysicalMemory",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -87,7 +118,7 @@ windows_ps = Collection(
             "Get-CimInstance Win32_LogicalDisk | "
             + "Select DeviceID, FreeSpace | ForEach-Object "
             + '{{$_.DeviceID + "|" + $_.FreeSpace}}',
-            interval=300,
+            interval=60,
             sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
@@ -100,8 +131,8 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_Processor | "
-            + "Select LoadPercentage;"
-            + "$x.LoadPercentage;",
+            + "Select LoadPercentage; "
+            + "$x.LoadPercentage",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -114,15 +145,14 @@ windows_ps = Collection(
         SensorCommand(
             "$x = Get-CimInstance msacpi_thermalzonetemperature "
             + '-namespace "root/wmi" | '
-            + "Select CurrentTemperature;"
-            + "($x.CurrentTemperature - 2732) / 10;",
+            + "Select CurrentTemperature; "
+            + "($x.CurrentTemperature - 2732) / 10",
             interval=60,
             sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     unit="°C",
-                    float=True,
                 )
             ],
         ),

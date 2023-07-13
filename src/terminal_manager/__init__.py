@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
+DEFAULT_ALLOW_TURN_OFF = False
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ class Manager(Collection, Synchronizer):
         *,
         name: str = DEFAULT_NAME,
         command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
+        allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
     ) -> None:
@@ -45,6 +47,7 @@ class Manager(Collection, Synchronizer):
             collection.sensor_commands if collection else None,
         )
         self.command_timeout = command_timeout
+        self.allow_turn_off = allow_turn_off
         self.logger = logger
 
     @property
@@ -186,3 +189,27 @@ class Manager(Collection, Synchronizer):
                     raise
 
         return await self.async_poll_sensors(keys, raise_errors=raise_errors)
+
+    async def async_turn_off(self) -> None:
+        """Turn off by running the `TURN_OFF` action.
+
+        Raises:
+            CommandError
+        """
+        if not (
+            ActionKey.TURN_OFF in self.action_commands_by_key and self.allow_turn_off
+        ):
+            return
+
+        await self.async_run_action(ActionKey.TURN_OFF)
+
+    async def async_restart(self) -> None:
+        """Restart by running the `RESTART` action.
+
+        Raises:
+            CommandError
+        """
+        if not ActionKey.RESTART in self.action_commands_by_key:
+            return
+
+        await self.async_run_action(ActionKey.RESTART)

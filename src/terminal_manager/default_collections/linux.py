@@ -92,7 +92,7 @@ linux = Collection(
         ),
         SensorCommand(
             "df -k | awk '/^\\/dev\\// {{print $6 \"|\" $4}}'",
-            interval=300,
+            interval=60,
             sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
@@ -122,7 +122,6 @@ linux = Collection(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     unit="°C",
-                    float=True,
                 )
             ],
         ),
