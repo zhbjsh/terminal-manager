@@ -20,14 +20,13 @@ windows_ps = Collection(
     [
         SensorCommand(
             "$x = Get-NetAdapterPowerManagement "
-            + '-Name "{network_interface}" | '
+            + '-Name "@sensor{network_interface}" | '
             + "Select WakeOnMagicPacket; "
             + "$x.WakeOnMagicPacket",
             sensors=[
                 BinarySensor(
                     SensorName.WAKE_ON_LAN,
                     SensorKey.WAKE_ON_LAN,
-                    payload_on="Enabled",
                 )
             ],
         ),
@@ -38,7 +37,7 @@ windows_ps = Collection(
             + "$x = Get-CimInstance Win32_NetworkAdapter "
             + "-Property NetConnectionID, InterfaceIndex, MACAddress "
             + '-Filter "InterfaceIndex=$($y.InterfaceIndex)" | '
-            + "Select MACAddress, NetConnectionID; "
+            + "Select MACAddress,NetConnectionID; "
             + "$x.MACAddress; "
             + "$x.NetConnectionID",
             sensors=[
@@ -54,7 +53,7 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
-            + "Select Name, SystemType; "
+            + "Select Name,SystemType; "
             + "$x.Name; "
             + "$x.SystemType",
             sensors=[
@@ -70,7 +69,7 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "$x = Get-CimInstance Win32_OperatingSystem | "
-            + "Select Caption, Version, OSArchitecture; "
+            + "Select Caption,Version,OSArchitecture; "
             + "$x.Caption; "
             + "$x.Version; "
             + "$x.OSArchitecture",
@@ -116,8 +115,8 @@ windows_ps = Collection(
         ),
         SensorCommand(
             "Get-CimInstance Win32_LogicalDisk | "
-            + "Select DeviceID, FreeSpace | ForEach-Object "
-            + '{{$_.DeviceID + "|" + $_.FreeSpace}}',
+            + "Select DeviceID,FreeSpace | "
+            + 'ForEach-Object {$_.DeviceID + "|" + $_.FreeSpace}',
             interval=60,
             sensors=[
                 NumberSensor(
@@ -157,7 +156,7 @@ windows_ps = Collection(
             ],
         ),
         SensorCommand(
-            "Get-Process | Measure | ForEach-Object {{$_.Count}}",
+            "Get-Process | Measure | ForEach-Object {$_.Count}",
             interval=60,
             sensors=[
                 NumberSensor(

@@ -72,8 +72,10 @@ class Sensor:
 
     def _update_value(self, manager: Manager, data: str | None) -> None:
         if data is None:
-            manager.logger.info("%s: %s => %s", manager.name, self.key, self.value)
             self.value = None
+            manager.logger.info(
+                "[%s] Sensor: %s => %s", manager.name, self.key, self.value
+            )
             return
 
         try:
@@ -81,12 +83,12 @@ class Sensor:
             value = self._convert(value_string)
             self._validate(value)
         except Exception as exc:  # pylint: disable=broad-except
-            manager.logger.info("%s: %s => %s", manager.name, self.key, exc)
             self.value = None
+            manager.logger.info("[%s] Sensor: %s => %s", manager.name, self.key, exc)
             return
 
         self.value = self.last_known_value = value
-        manager.logger.info("%s: %s => %s", manager.name, self.key, self.value)
+        manager.logger.info("[%s] Sensor: %s => %s", manager.name, self.key, self.value)
 
     def _update_child_sensors(self, manager: Manager, data: list[str] | None) -> None:
         if data is None:
@@ -245,7 +247,7 @@ class BinarySensor(Sensor):
         if value_string.lower() in FALSE_STRINGS:
             return False
 
-        raise ValueError("Can't generate bool from {value_string}")
+        raise ValueError(f"Can't generate bool from {value_string}")
 
     def _validate(self, value: Any) -> None:
         if not isinstance(value, bool):

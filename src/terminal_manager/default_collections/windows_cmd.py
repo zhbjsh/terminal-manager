@@ -26,7 +26,7 @@ windows_cmd = Collection(
             + 'findstr /r "\\<[0-9][0-9]*\\>"\') do '
             + '@for /f "skip=2 tokens=2,3 delims=," %j in (\'wmic nic '
             + 'where "InterfaceIndex=%i" '
-            + "get MACAddress^, NetConnectionID /format:csv') do "
+            + "get MACAddress^,NetConnectionID /format:csv') do "
             + "@echo %j & @echo %k",
             sensors=[
                 TextSensor(
@@ -113,7 +113,7 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             'for /f "tokens=1,2" %i in (\'wmic LogicalDisk '
-            + "get DeviceID^, FreeSpace ^| "
+            + "get DeviceID^,FreeSpace ^| "
             + 'findstr ":"\') do '
             + "@echo %i^|%j",
             interval=60,

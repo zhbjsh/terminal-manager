@@ -18,28 +18,9 @@ linux = Collection(
         ),
     ],
     [
+        # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "cat /sys/class/net/{network_interface}/address",
-            sensors=[
-                TextSensor(
-                    SensorName.MAC_ADDRESS,
-                    SensorKey.MAC_ADDRESS,
-                )
-            ],
-        ),
-        SensorCommand(
-            "file=/sys/class/net/{network_interface}/device/power/wakeup; "
-            + "[[ ! -f $file ]] || cat $file",
-            sensors=[
-                BinarySensor(
-                    SensorName.WAKE_ON_LAN,
-                    SensorKey.WAKE_ON_LAN,
-                    payload_on="enabled",
-                )
-            ],
-        ),
-        SensorCommand(
-            "/sbin/route -n | awk '/^0.0.0.0/ {{print $NF}}'",
+            "/sbin/route -n | awk '/^0.0.0.0/ {print $NF}'",
             sensors=[
                 TextSensor(
                     SensorName.NETWORK_INTERFACE,
@@ -48,7 +29,26 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "uname -a | awk '{{print $1; print $2; print $3; print $(NF-1)}}'",
+            "cat /sys/class/net/@sensor{network_interface}/address",
+            sensors=[
+                TextSensor(
+                    SensorName.MAC_ADDRESS,
+                    SensorKey.MAC_ADDRESS,
+                )
+            ],
+        ),
+        SensorCommand(
+            "file=/sys/class/net/@sensor{network_interface}/device/power/wakeup; "
+            + "[[ ! -f $file ]] || cat $file",
+            sensors=[
+                BinarySensor(
+                    SensorName.WAKE_ON_LAN,
+                    SensorKey.WAKE_ON_LAN,
+                )
+            ],
+        ),
+        SensorCommand(
+            "uname -a | awk '{print $1; print $2; print $3; print $(NF-1)}'",
             sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
@@ -68,9 +68,8 @@ linux = Collection(
                 ),
             ],
         ),
-        # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "free -k | awk '/^Mem:/ {{print $2}}'",
+            "free -k | awk '/^Mem:/ {print $2}'",
             sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
@@ -80,7 +79,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "free -k | awk '/^Mem:/ {{print $4}}'",
+            "free -k | awk '/^Mem:/ {print $4}'",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -91,7 +90,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "df -k | awk '/^\\/dev\\// {{print $6 \"|\" $4}}'",
+            "df -k | awk '/^\\/dev\\// {print $6 \"|\" $4}'",
             interval=60,
             sensors=[
                 NumberSensor(
@@ -104,7 +103,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "top -bn1 | awk 'NR<4 && tolower($0)~/cpu/ {{print 100-$8}}'",
+            "top -bn1 | awk 'NR<4 && tolower($0)~/cpu/ {print 100-$8}'",
             interval=30,
             sensors=[
                 NumberSensor(

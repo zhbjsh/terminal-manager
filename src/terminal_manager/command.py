@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field
-from string import Formatter
+from string import Formatter, Template
+from time import time
 from typing import TYPE_CHECKING
 
 from .errors import CommandError
@@ -12,7 +13,18 @@ from .sensor import Sensor
 if TYPE_CHECKING:
     from . import CommandOutput, Manager
 
-SENSOR_PLACEHOLDER_KEY = "_"
+SENSOR_DELIMITER = "@sensor"
+VARIABLE_DELIMITER = "@variable"
+SHORTCUTS = ["id", "value"]
+PLACEHOLDER_KEY = "_"
+
+
+class SensorTemplate(Template):
+    delimiter = SENSOR_DELIMITER
+
+
+class VariableTemplate(Template):
+    delimiter = VARIABLE_DELIMITER
 
 
 @dataclass
@@ -23,55 +35,64 @@ class Command:
     renderer: Callable[[str], str] | None = None
 
     @property
-    def field_keys(self) -> list[str]:
-        return {key for _, key, _, _ in Formatter().parse(self.string) if key}
+    def required_variables(self) -> set[str]:
+        string = self._replace_shortcuts(self.string)
+        return set(VariableTemplate(string).get_identifiers())
+
+    @property
+    def required_sensors(self) -> set[str]:
+        string = self._replace_shortcuts(self.string)
+        return set(SensorTemplate(string).get_identifiers())
+
+    def _replace_shortcuts(self, string: str) -> str:
+        for name in SHORTCUTS:
+            string = string.replace(f"@{name}", f"{VARIABLE_DELIMITER}{{{name}}}")
+        return string
 
     def _render(self, string: str) -> str:
         if self.renderer:
-            return self.renderer(string)
+            string = self.renderer(string)
         return string
 
-    def get_variable_keys(self, manager: Manager) -> set[str]:
-        """Get the variable keys."""
-        return {key for key in self.field_keys if key not in manager.sensors_by_key}
-
-    def get_sensor_keys(self, manager: Manager) -> set[str]:
-        """Get the sensor keys."""
-        return {key for key in self.field_keys if key in manager.sensors_by_key}
-
-    async def async_format(
-        self, manager: Manager, variables: dict | None = None
+    async def async_generate_string(
+        self,
+        manager: Manager,
+        variables: dict | None = None,
     ) -> str:
-        """Format the string.
+        """Generate the string.
 
         Raises:
             CommandError
         """
-        variables = {**variables} if variables else {}
-        missing_sensor_keys = set()
+        variables = variables or {}
+        sensor_values_by_key = {}
+        string = self._replace_shortcuts(self.string)
 
-        for key in self.get_variable_keys(manager):
-            if key not in variables:
-                raise CommandError(f"Variable {key} is missing")
+        try:
+            string = VariableTemplate(string).substitute(variables)
+        except Exception as exc:
+            raise CommandError(f"Failed to substitute variables ({exc})")
 
-        for key in self.get_sensor_keys(manager):
-            if key not in variables:
-                sensor = manager.get_sensor(key)
-                if sensor.value is not None:
-                    variables[sensor.key] = sensor.value
-                else:
-                    missing_sensor_keys.add(sensor.key)
+        try:
+            sensors = await manager.async_poll_sensors(self.required_sensors)
+        except Exception as exc:
+            raise CommandError(f"Failed to poll sensors ({exc})")
 
-        for sensor in await manager.async_poll_sensors(missing_sensor_keys):
+        for sensor in sensors:
             if sensor.value is not None:
-                variables[sensor.key] = sensor.value
+                sensor_values_by_key[sensor.key] = sensor.value
             else:
                 raise CommandError(f"Value of sensor {sensor.key} is None")
 
         try:
-            return self._render(self.string.format(**variables))
+            string = SensorTemplate(string).substitute(sensor_values_by_key)
         except Exception as exc:
-            raise CommandError("Failed to generate string ({exc})") from exc
+            raise CommandError(f"Failed to substitute sensors ({exc})") from exc
+
+        try:
+            return self._render(string)
+        except Exception as exc:
+            raise CommandError(f"Failed to render string ({exc})")
 
     async def async_execute(
         self, manager: Manager, variables: dict | None = None
@@ -82,19 +103,21 @@ class Command:
             CommandError
         """
         try:
-            string = await self.async_format(manager, variables)
+            string = await self.async_generate_string(manager, variables)
         except CommandError as exc:
-            manager.logger.info("%s: %s => %s", manager.name, self.string, exc)
+            manager.logger.info(
+                "[%s] Command: %s => %s", manager.name, self.string, exc
+            )
             raise
 
         try:
             output = await manager.async_execute_command_string(string, self.timeout)
         except CommandError as exc:
-            manager.logger.info("%s: %s => %s", manager.name, string, exc)
+            manager.logger.info("[%s] Command: %s => %s", manager.name, string, exc)
             raise
 
         manager.logger.info(
-            "%s: %s => %s, %s, %s",
+            "[%s] Command: %s => %s, %s, %s",
             manager.name,
             string,
             output.stdout,
@@ -126,18 +149,28 @@ class SensorCommand(Command):
         self.last_update: float | None = None
 
     @property
+    def should_update(self) -> bool:
+        if not self.interval:
+            return False
+        if not self.last_update:
+            return True
+        if time() - self.last_update < self.interval:
+            return False
+        return True
+
+    @property
     def sensors_by_key(self) -> dict[str, Sensor]:
         return {
             sensor.key: sensor
             for command_sensor in self.sensors
             for sensor in (command_sensor, *command_sensor.child_sensors)
-            if command_sensor.key != SENSOR_PLACEHOLDER_KEY
+            if command_sensor.key != PLACEHOLDER_KEY
         }
 
     def remove_sensor(self, key: str) -> None:
         """Remove a sensor."""
         self.sensors = [
-            Sensor(key=SENSOR_PLACEHOLDER_KEY) if sensor.key == key else sensor
+            Sensor(key=PLACEHOLDER_KEY) if sensor.key == key else sensor
             for sensor in self.sensors
         ]
 

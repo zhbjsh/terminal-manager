@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
+from time import time
 from typing import Any
 
 from .collection import Collection
@@ -89,6 +90,21 @@ class Manager(Collection, Synchronizer):
     def wake_on_lan(self) -> bool | None:
         if sensor := self.sensors_by_key.get(SensorKey.WAKE_ON_LAN):
             return sensor.last_known_value
+
+    async def async_update_sensor_commands(self, force: bool = False) -> None:
+        """Update the sensor commands.
+
+        Execute sensor commands that passed their `interval` or
+        all sensor commands with `force=True`.
+
+        """
+        for command in self.sensor_commands:
+            if not (force or command.should_update):
+                return
+            try:
+                await self.async_execute_command(command)
+            except CommandError:
+                pass
 
     async def async_execute_command_string(
         self, string: str, command_timeout: int | None = None
