@@ -38,8 +38,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "file=/sys/class/net/@sensor{network_interface}/device/power/wakeup; "
-            + "[[ ! -f $file ]] || cat $file",
+            "cat /sys/class/net/@sensor{network_interface}/device/power/wakeup 2>/dev/null",
             sensors=[
                 BinarySensor(
                     SensorName.WAKE_ON_LAN,
@@ -48,23 +47,38 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "uname -a | awk '{print $1; print $2; print $3; print $(NF-1)}'",
+            "uname -n",
+            sensors=[
+                TextSensor(
+                    SensorName.HOSTNAME,
+                    SensorKey.HOSTNAME,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "uname -m",
+            sensors=[
+                TextSensor(
+                    SensorName.MACHINE_TYPE,
+                    SensorKey.MACHINE_TYPE,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "uname -s",
             sensors=[
                 TextSensor(
                     SensorName.OS_NAME,
                     SensorKey.OS_NAME,
                 ),
-                TextSensor(
-                    SensorName.HOSTNAME,
-                    SensorKey.HOSTNAME,
-                ),
+            ],
+        ),
+        SensorCommand(
+            "uname -r",
+            sensors=[
                 TextSensor(
                     SensorName.OS_VERSION,
                     SensorKey.OS_VERSION,
-                ),
-                TextSensor(
-                    SensorName.MACHINE_TYPE,
-                    SensorKey.MACHINE_TYPE,
                 ),
             ],
         ),
@@ -90,7 +104,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "df -k | awk '/^\\/dev\\// {print $6 \"|\" $4}'",
+            'df -k | awk \'/^\\/dev\\// {x=$0; sub(/^[^ ]+( +[^ ]+){4} /,"",x); print x "|" $4}\'',
             interval=60,
             sensors=[
                 NumberSensor(
@@ -103,7 +117,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "top -bn1 | awk 'NR<4 && tolower($0)~/cpu/ {print 100-$8}'",
+            "top -bn1 | awk 'NR<4 && tolower($0) ~ /cpu/ {print 100-$8}'",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -125,7 +139,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "ps -e --no-headers | wc -l",
+            "ps -e | awk 'END {print NR-1}'",
             interval=60,
             sensors=[
                 NumberSensor(

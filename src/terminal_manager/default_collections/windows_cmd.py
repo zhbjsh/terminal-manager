@@ -40,6 +40,15 @@ windows_cmd = Collection(
             ],
         ),
         SensorCommand(
+            "hostname",
+            sensors=[
+                TextSensor(
+                    SensorName.HOSTNAME,
+                    SensorKey.HOSTNAME,
+                )
+            ],
+        ),
+        SensorCommand(
             'for /f "skip=1 tokens=*" %i in (\'wmic ComputerSystem '
             + "get SystemType') do "
             + "@echo %i",
@@ -48,15 +57,6 @@ windows_cmd = Collection(
                     SensorName.MACHINE_TYPE,
                     SensorKey.MACHINE_TYPE,
                 ),
-            ],
-        ),
-        SensorCommand(
-            "hostname",
-            sensors=[
-                TextSensor(
-                    SensorName.HOSTNAME,
-                    SensorKey.HOSTNAME,
-                )
             ],
         ),
         SensorCommand(

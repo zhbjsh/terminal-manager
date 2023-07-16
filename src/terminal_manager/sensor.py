@@ -73,9 +73,7 @@ class Sensor:
     def _update_value(self, manager: Manager, data: str | None) -> None:
         if data is None:
             self.value = None
-            manager.logger.info(
-                "[%s] Sensor: %s => %s", manager.name, self.key, self.value
-            )
+            manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
             return
 
         try:
@@ -84,11 +82,13 @@ class Sensor:
             self._validate(value)
         except Exception as exc:  # pylint: disable=broad-except
             self.value = None
-            manager.logger.info("[%s] Sensor: %s => %s", manager.name, self.key, exc)
+            manager.logger.debug(
+                "%s: %s => %s (%s)", manager.name, self.key, self.value, exc
+            )
             return
 
         self.value = self.last_known_value = value
-        manager.logger.info("[%s] Sensor: %s => %s", manager.name, self.key, self.value)
+        manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
 
     def _update_child_sensors(self, manager: Manager, data: list[str] | None) -> None:
         if data is None:

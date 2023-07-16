@@ -105,19 +105,17 @@ class Command:
         try:
             string = await self.async_generate_string(manager, variables)
         except CommandError as exc:
-            manager.logger.info(
-                "[%s] Command: %s => %s", manager.name, self.string, exc
-            )
+            manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
             raise
 
         try:
             output = await manager.async_execute_command_string(string, self.timeout)
         except CommandError as exc:
-            manager.logger.info("[%s] Command: %s => %s", manager.name, string, exc)
+            manager.logger.debug("%s: %s => %s", manager.name, string, exc)
             raise
 
-        manager.logger.info(
-            "[%s] Command: %s => %s, %s, %s",
+        manager.logger.debug(
+            "%s: %s => %s, %s, %s",
             manager.name,
             string,
             output.stdout,
