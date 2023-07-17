@@ -23,6 +23,7 @@ DEFAULT_ALLOW_TURN_OFF = False
 
 @dataclass(frozen=True)
 class CommandOutput:
+    command_string: str
     timestamp: float
     stdout: list[str]
     stderr: list[str]
