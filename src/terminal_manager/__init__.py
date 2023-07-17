@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from time import time
 from typing import Any
 
 from .collection import Collection
@@ -124,7 +123,7 @@ class Manager(Collection, Synchronizer):
         Raises:
             CommandError
         """
-        await command.async_execute(self, variables)
+        return await command.async_execute(self, variables)
 
     async def async_run_action(
         self, key: str, variables: dict | None = None
@@ -206,26 +205,22 @@ class Manager(Collection, Synchronizer):
 
         return await self.async_poll_sensors(keys, raise_errors=raise_errors)
 
-    async def async_turn_off(self) -> None:
+    async def async_turn_off(self) -> CommandOutput:
         """Turn off by running the `TURN_OFF` action.
 
         Raises:
+            PermissionError
             CommandError
         """
-        if not (
-            ActionKey.TURN_OFF in self.action_commands_by_key and self.allow_turn_off
-        ):
-            return
+        if not self.allow_turn_off:
+            raise PermissionError("Not allowed to turn off")
 
-        await self.async_run_action(ActionKey.TURN_OFF)
+        return await self.async_run_action(ActionKey.TURN_OFF)
 
-    async def async_restart(self) -> None:
+    async def async_restart(self) -> CommandOutput:
         """Restart by running the `RESTART` action.
 
         Raises:
             CommandError
         """
-        if not ActionKey.RESTART in self.action_commands_by_key:
-            return
-
-        await self.async_run_action(ActionKey.RESTART)
+        return await self.async_run_action(ActionKey.RESTART)
