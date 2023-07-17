@@ -104,7 +104,9 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'df -k | awk \'/^\\/dev\\// {x=$0; sub(/^[^ ]+( +[^ ]+){4} /,"",x); print x "|" $4}\'',
+            "df -k | awk '/^\/dev\// {"
+            + 'x=$0; sub(/^[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ /,"",x); '
+            + 'print x "|" $4}\'',
             interval=60,
             sensors=[
                 NumberSensor(
