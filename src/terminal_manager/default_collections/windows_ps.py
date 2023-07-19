@@ -20,7 +20,7 @@ windows_ps = Collection(
     [
         SensorCommand(
             "$x = Get-NetAdapterPowerManagement "
-            + '-Name "@sensor{network_interface}" | '
+            + '-Name "#{network_interface}" | '
             + "Select WakeOnMagicPacket; "
             + "$x.WakeOnMagicPacket",
             sensors=[

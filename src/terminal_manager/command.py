@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re as _re
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field
 from string import Template
@@ -13,9 +14,8 @@ from .sensor import Sensor
 if TYPE_CHECKING:
     from . import CommandOutput, Manager
 
-SENSOR_DELIMITER = "@sensor"
-VARIABLE_DELIMITER = "@variable"
-SHORTCUTS = ["id", "value"]
+SENSOR_DELIMITER = "#"
+VARIABLE_DELIMITER = "@"
 PLACEHOLDER_KEY = "_"
 
 
@@ -38,10 +38,26 @@ class Template(Template):
 
 class SensorTemplate(Template):
     delimiter = SENSOR_DELIMITER
+    pattern = rf"""
+    {_re.escape(delimiter)}{{(?:
+      (?P<braced>{Template.idpattern})|
+      (?P<invalid>)|
+      (?P<named>)|
+      (?P<escaped>)
+    )}}
+    """
 
 
 class VariableTemplate(Template):
     delimiter = VARIABLE_DELIMITER
+    pattern = rf"""
+    {_re.escape(delimiter)}{{(?:
+      (?P<braced>{Template.idpattern})|
+      (?P<invalid>)|
+      (?P<named>)|
+      (?P<escaped>)
+    )}}
+    """
 
 
 @dataclass
@@ -53,18 +69,11 @@ class Command:
 
     @property
     def required_variables(self) -> set[str]:
-        string = self._replace_shortcuts(self.string)
-        return set(VariableTemplate(string).get_identifiers())
+        return set(VariableTemplate(self.string).get_identifiers())
 
     @property
     def required_sensors(self) -> set[str]:
-        string = self._replace_shortcuts(self.string)
-        return set(SensorTemplate(string).get_identifiers())
-
-    def _replace_shortcuts(self, string: str) -> str:
-        for name in SHORTCUTS:
-            string = string.replace(f"@{name}", f"{VARIABLE_DELIMITER}{{{name}}}")
-        return string
+        return set(SensorTemplate(self.string).get_identifiers())
 
     def _render(self, string: str) -> str:
         if self.renderer:
@@ -83,12 +92,12 @@ class Command:
         """
         variables = variables or {}
         sensor_values_by_key = {}
-        string = self._replace_shortcuts(self.string)
+        string = self.string
 
         try:
             string = VariableTemplate(string).substitute(variables)
         except Exception as exc:
-            raise CommandError(f"Failed to substitute variables ({exc})")
+            raise CommandError(f"Failed to substitute variable ({exc})")
 
         try:
             sensors = await manager.async_poll_sensors(self.required_sensors)
@@ -104,7 +113,7 @@ class Command:
         try:
             string = SensorTemplate(string).substitute(sensor_values_by_key)
         except Exception as exc:
-            raise CommandError(f"Failed to substitute sensors ({exc})") from exc
+            raise CommandError(f"Failed to substitute sensor ({exc})") from exc
 
         try:
             return self._render(string)
