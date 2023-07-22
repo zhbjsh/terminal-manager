@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .collection import Collection
-from .command import ActionCommand, Command, SensorCommand
+from .command import PLACEHOLDER_KEY, ActionCommand, Command, SensorCommand
 from .default_collections import ActionKey, SensorKey
 from .errors import CommandError
 from .event import Event

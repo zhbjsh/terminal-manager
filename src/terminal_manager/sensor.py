@@ -217,7 +217,7 @@ class BinarySensor(Sensor):
         if self.command_on and self.command_off:
             return True
 
-        return self.command_set is not None
+        return super().controllable
 
     def _get_control_command(self, value: Any) -> Command | None:
         if self.command_on and value is True:
