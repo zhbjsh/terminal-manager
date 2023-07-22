@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "terminal_manager"
-version = "0.8.5"
+version = "0.8.6"
 authors = [
   { name="zhbjsh", email="zhbjsh@outlook.com" },
 ]
