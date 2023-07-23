@@ -22,9 +22,9 @@ keywords = [
   "shell",
   "bash",
   "cmd",
-  "power shell"
+  "power shell",
   "commands",
-  "command line",
+  "command line"
 ]
 dependencies = [
   "python-slugify >= 4.0.1",
