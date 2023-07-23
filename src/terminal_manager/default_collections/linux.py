@@ -29,7 +29,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "cat /sys/class/net/#{network_interface}/address",
+            "cat /sys/class/net/&{network_interface}/address",
             sensors=[
                 TextSensor(
                     SensorName.MAC_ADDRESS,
@@ -38,7 +38,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "cat /sys/class/net/#{network_interface}/device/power/wakeup 2>/dev/null",
+            "cat /sys/class/net/&{network_interface}/device/power/wakeup 2>/dev/null",
             sensors=[
                 BinarySensor(
                     SensorName.WAKE_ON_LAN,

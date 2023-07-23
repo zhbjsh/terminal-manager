@@ -14,7 +14,7 @@ from .sensor import Sensor
 if TYPE_CHECKING:
     from . import CommandOutput, Manager
 
-SENSOR_DELIMITER = "#"
+SENSOR_DELIMITER = "&"
 VARIABLE_DELIMITER = "@"
 PLACEHOLDER_KEY = "_"
 
