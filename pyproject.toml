@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "terminal_manager"
-version = "0.8.7"
+version = "0.9.0"
 authors = [
   { name="zhbjsh", email="zhbjsh@outlook.com" },
 ]
@@ -17,7 +17,13 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 keywords = [ 
-  "terminal", 
+  "terminal",
+  "console",
+  "shell",
+  "bash",
+  "cmd",
+  "power shell"
+  "commands",
   "command line",
 ]
 dependencies = [
