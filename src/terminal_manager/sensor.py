@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from copy import deepcopy
-from dataclasses import KW_ONLY, dataclass, field
+from dataclasses import KW_ONLY, dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
 from .event import Event
@@ -108,11 +107,14 @@ class Sensor:
 
         for key, dynamic_data in dynamic_data_by_key.items():
             if key not in self.child_sensors_by_key:
-                child = deepcopy(self)
+                child = replace(
+                    self,
+                    name=dynamic_data.name,
+                    key=dynamic_data.key,
+                    dynamic=False,
+                    separator=None,
+                )
                 child.id = dynamic_data.id
-                child.key = dynamic_data.key
-                child.name = dynamic_data.name
-                child.dynamic = False
                 self._add_child(child)
 
         for child in self.child_sensors:
