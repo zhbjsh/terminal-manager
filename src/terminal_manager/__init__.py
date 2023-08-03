@@ -51,6 +51,12 @@ class Manager(Collection, Synchronizer):
         self.allow_turn_off = allow_turn_off
         self.logger = logger
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.async_close()
+
     @property
     def hostname(self) -> str | None:
         if sensor := self.sensors_by_key.get(SensorKey.HOSTNAME):
@@ -90,6 +96,9 @@ class Manager(Collection, Synchronizer):
     def wake_on_lan(self) -> bool | None:
         if sensor := self.sensors_by_key.get(SensorKey.WAKE_ON_LAN):
             return sensor.last_known_value
+
+    async def async_close(self) -> None:
+        """Close."""
 
     async def async_update_sensor_commands(self, force: bool = False) -> None:
         """Update the sensor commands.
