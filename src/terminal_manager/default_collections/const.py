@@ -1,14 +1,17 @@
-class ActionKey:
+from enum import StrEnum
+
+
+class ActionKey(StrEnum):
     TURN_OFF = "turn_off"
     RESTART = "restart"
 
 
-class ActionName:
+class ActionName(StrEnum):
     TURN_OFF = "Turn off"
     RESTART = "Restart"
 
 
-class SensorKey:
+class SensorKey(StrEnum):
     NETWORK_INTERFACE = "network_interface"
     MAC_ADDRESS = "mac_address"
     WAKE_ON_LAN = "wake_on_lan"
@@ -25,7 +28,7 @@ class SensorKey:
     PROCESSES = "processes"
 
 
-class SensorName:
+class SensorName(StrEnum):
     NETWORK_INTERFACE = "Network Interface"
     MAC_ADDRESS = "MAC Address"
     WAKE_ON_LAN = "Wake on LAN"
