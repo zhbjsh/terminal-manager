@@ -35,8 +35,8 @@ class Sensor:
         self.last_known_value: Any | None = None
         self.child_sensors: list[Sensor] = []
         self.on_update = Event()
-        self.on_child_added = Event()
-        self.on_child_removed = Event()
+        self.on_child_add = Event()
+        self.on_child_remove = Event()
 
     @property
     def controllable(self) -> bool:
@@ -51,11 +51,11 @@ class Sensor:
 
     def _add_child(self, child: Sensor) -> None:
         self.child_sensors.append(child)
-        self.on_child_added.notify(self, child)
+        self.on_child_add.notify(self, child)
 
     def _remove_child(self, child: Sensor) -> None:
         self.child_sensors.remove(child)
-        self.on_child_removed.notify(self, child)
+        self.on_child_remove.notify(self, child)
 
     def _render(self, data: str) -> str:
         if self.renderer:
