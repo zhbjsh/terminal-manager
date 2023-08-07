@@ -207,8 +207,12 @@ class Manager(Collection, Synchronizer):
         for i, sensor in enumerate(sensors):
             if sensor.value is None:
                 continue
+            if callable(values[i]):
+                value = values[i](sensor.value)
+            else:
+                value = values[i]
             try:
-                await sensor.async_set(self, values[i])
+                await sensor.async_set(self, value)
             except (TypeError, ValueError, CommandError):
                 if raise_errors:
                     raise
