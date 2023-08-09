@@ -83,6 +83,38 @@ linux = Collection(
             ],
         ),
         SensorCommand(
+            'cat /proc/cpuinfo | awk -F": +" \'{ '
+            + "if($0~/^model name/){a=$2} "
+            + "if($0~/^processor/){b=$2} "
+            + "if($0~/^Hardware/){c=$2} "
+            + "if($0~/^Model/){d=$2} "
+            + "if($0~/^Serial/){e=$2}} "
+            + "END{print a; print b+1; print c; print d; print e}' | "
+            + 'sed -e "s/[[:space:]]\+/ /g"',
+            sensors=[
+                TextSensor(
+                    SensorName.CPU_NAME,
+                    SensorKey.CPU_NAME,
+                ),
+                NumberSensor(
+                    SensorName.CPU_COUNT,
+                    SensorKey.CPU_COUNT,
+                ),
+                TextSensor(
+                    SensorName.HARDWARE,
+                    SensorKey.HARDWARE,
+                ),
+                TextSensor(
+                    SensorName.MODEL,
+                    SensorKey.MODEL,
+                ),
+                TextSensor(
+                    SensorName.SERIAL_NUMBER,
+                    SensorKey.SERIAL_NUMBER,
+                ),
+            ],
+        ),
+        SensorCommand(
             "free -k | awk '/^Mem:/ {print $2}'",
             sensors=[
                 NumberSensor(
