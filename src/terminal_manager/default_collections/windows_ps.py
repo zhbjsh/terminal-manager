@@ -89,6 +89,54 @@ windows_ps = Collection(
             ],
         ),
         SensorCommand(
+            "$x = Get-CimInstance Win32_ComputerSystemProduct | "
+            + "Select Vendor,Name,Version; "
+            + "$x.Name; "
+            + "$x.Version: "
+            + "$x.Vendor",
+            sensors=[
+                TextSensor(
+                    SensorName.DEVICE_NAME,
+                    SensorKey.DEVICE_NAME,
+                ),
+                TextSensor(
+                    SensorName.DEVICE_MODEL,
+                    SensorKey.DEVICE_MODEL,
+                ),
+                TextSensor(
+                    SensorName.MANUFACTURER,
+                    SensorKey.MANUFACTURER,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "$x = Get-CimInstance Win32_BIOS | "
+            + "Select SerialNumber; "
+            + "$x.SerialNumber",
+            sensors=[
+                TextSensor(
+                    SensorName.SERIAL_NUMBER,
+                    SensorKey.SERIAL_NUMBER,
+                )
+            ],
+        ),
+        SensorCommand(
+            "$x = Get-CimInstance Win32_Processor | "
+            + "Select Name,NumberOfCores; "
+            + "$x.Name; "
+            + "$x.NumberOfCores",
+            sensors=[
+                TextSensor(
+                    SensorName.CPU_NAME,
+                    SensorKey.CPU_NAME,
+                ),
+                NumberSensor(
+                    SensorName.CPU_CORES,
+                    SensorKey.CPU_CORES,
+                ),
+            ],
+        ),
+        SensorCommand(
             "$x = Get-CimInstance Win32_ComputerSystem | "
             + "Select TotalPhysicalMemory; "
             + "$x.TotalPhysicalMemory",

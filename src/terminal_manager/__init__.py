@@ -58,43 +58,71 @@ class Manager(Collection, Synchronizer):
         await self.async_close()
 
     @property
-    def hostname(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.HOSTNAME):
-            return sensor.last_known_value
-
-    @property
-    def os_name(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.OS_NAME):
-            return sensor.last_known_value
-
-    @property
-    def os_version(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.OS_VERSION):
-            return sensor.last_known_value
-
-    @property
-    def os_architecture(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.OS_ARCHITECTURE):
-            return sensor.last_known_value
-
-    @property
-    def machine_type(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.MACHINE_TYPE):
-            return sensor.last_known_value
-
-    @property
     def network_interface(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.NETWORK_INTERFACE):
-            return sensor.last_known_value
+        return self._last_known_value_or_none(SensorKey.NETWORK_INTERFACE)
 
     @property
     def mac_address(self) -> str | None:
-        if sensor := self.sensors_by_key.get(SensorKey.MAC_ADDRESS):
-            return sensor.last_known_value
+        return self._last_known_value_or_none(SensorKey.MAC_ADDRESS)
 
     @property
     def wake_on_lan(self) -> bool | None:
-        if sensor := self.sensors_by_key.get(SensorKey.WAKE_ON_LAN):
+        return self._last_known_value_or_none(SensorKey.WAKE_ON_LAN)
+
+    @property
+    def machine_type(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.MACHINE_TYPE)
+
+    @property
+    def hostname(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.HOSTNAME)
+
+    @property
+    def os_name(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.OS_NAME)
+
+    @property
+    def os_version(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.OS_VERSION)
+
+    @property
+    def os_architecture(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.OS_ARCHITECTURE)
+
+    @property
+    def device_name(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.DEVICE_NAME)
+
+    @property
+    def device_model(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.DEVICE_MODEL)
+
+    @property
+    def manufacturer(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.MANUFACTURER)
+
+    @property
+    def serial_number(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.SERIAL_NUMBER)
+
+    @property
+    def cpu_name(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.CPU_NAME)
+
+    @property
+    def cpu_cores(self) -> int | None:
+        return self._last_known_value_or_none(SensorKey.CPU_CORES)
+
+    @property
+    def cpu_hardware(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.CPU_HARDWARE)
+
+    @property
+    def cpu_model(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.CPU_MODEL)
+
+    def _last_known_value_or_none(self, sensor_key: str) -> Any | None:
+        if sensor := self.sensors_by_key.get(sensor_key):
             return sensor.last_known_value
 
     async def async_close(self) -> None:

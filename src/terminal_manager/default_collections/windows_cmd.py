@@ -87,6 +87,60 @@ windows_cmd = Collection(
             ],
         ),
         SensorCommand(
+            "for /f \"skip=1 tokens=*\" %i in ('wmic csproduct get Name') do @echo %i",
+            sensors=[
+                TextSensor(
+                    SensorName.DEVICE_NAME,
+                    SensorKey.DEVICE_NAME,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "for /f \"skip=1 tokens=*\" %i in ('wmic csproduct get Version') do @echo %i",
+            sensors=[
+                TextSensor(
+                    SensorName.DEVICE_MODEL,
+                    SensorKey.DEVICE_MODEL,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "for /f \"skip=1 tokens=*\" %i in ('wmic csproduct get Vendor') do @echo %i",
+            sensors=[
+                TextSensor(
+                    SensorName.MANUFACTURER,
+                    SensorKey.MANUFACTURER,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "for /f \"skip=1 tokens=*\" %i in ('wmic bios get SerialNumber') do @echo %i",
+            sensors=[
+                TextSensor(
+                    SensorName.SERIAL_NUMBER,
+                    SensorKey.SERIAL_NUMBER,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "for /f \"skip=1 tokens=*\" %i in ('wmic cpu get Name') do @echo %i",
+            sensors=[
+                TextSensor(
+                    SensorName.CPU_NAME,
+                    SensorKey.CPU_NAME,
+                ),
+            ],
+        ),
+        SensorCommand(
+            "for /f \"skip=1\" %i in ('wmic cpu get NumberOfCores') do @echo %i",
+            sensors=[
+                NumberSensor(
+                    SensorName.CPU_CORES,
+                    SensorKey.CPU_CORES,
+                ),
+            ],
+        ),
+        SensorCommand(
             'for /f "skip=1" %i in (\'wmic ComputerSystem '
             + "get TotalPhysicalMemory') do "
             + "@echo %i",

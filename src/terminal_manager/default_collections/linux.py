@@ -83,13 +83,38 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'cat /proc/cpuinfo | awk -F": +" \'{ '
+            "dmidecode | grep -A4 '^System Information' | awk -F\": \" '{"
+            + "if($0~/Product Name:/){a=$2} "
+            + "if($0~/Version:/){b=$2} "
+            + "if($0~/Manufacturer:/){c=$2} "
+            + "if($0~/Serial Number:/){d=$2}} "
+            + "END{print a; print b; print c; print d}'",
+            sensors=[
+                TextSensor(
+                    SensorName.DEVICE_NAME,
+                    SensorKey.DEVICE_NAME,
+                ),
+                TextSensor(
+                    SensorName.DEVICE_MODEL,
+                    SensorKey.DEVICE_MODEL,
+                ),
+                TextSensor(
+                    SensorName.MANUFACTURER,
+                    SensorKey.MANUFACTURER,
+                ),
+                TextSensor(
+                    SensorName.SERIAL_NUMBER,
+                    SensorKey.SERIAL_NUMBER,
+                ),
+            ],
+        ),
+        SensorCommand(
+            'cat /proc/cpuinfo | awk -F": " \'{'
             + "if($0~/^model name/){a=$2} "
             + "if($0~/^processor/){b=$2} "
             + "if($0~/^Hardware/){c=$2} "
-            + "if($0~/^Model/){d=$2} "
-            + "if($0~/^Serial/){e=$2}} "
-            + "END{print a; print b+1; print c; print d; print e}' | "
+            + "if($0~/^Model/){d=$2}} "
+            + "END{print a; print b+1; print c; print d}' | "
             + 'sed -e "s/[[:space:]]\+/ /g"',
             sensors=[
                 TextSensor(
@@ -97,20 +122,16 @@ linux = Collection(
                     SensorKey.CPU_NAME,
                 ),
                 NumberSensor(
-                    SensorName.CPU_COUNT,
-                    SensorKey.CPU_COUNT,
+                    SensorName.CPU_CORES,
+                    SensorKey.CPU_CORES,
                 ),
                 TextSensor(
-                    SensorName.HARDWARE,
-                    SensorKey.HARDWARE,
+                    SensorName.CPU_HARDWARE,
+                    SensorKey.CPU_HARDWARE,
                 ),
                 TextSensor(
-                    SensorName.MODEL,
-                    SensorKey.MODEL,
-                ),
-                TextSensor(
-                    SensorName.SERIAL_NUMBER,
-                    SensorKey.SERIAL_NUMBER,
+                    SensorName.CPU_MODEL,
+                    SensorKey.CPU_MODEL,
                 ),
             ],
         ),
