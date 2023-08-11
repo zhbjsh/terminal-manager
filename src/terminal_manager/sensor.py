@@ -162,6 +162,12 @@ class TextSensor(Sensor):
     pattern: str | None = None
     options: list[Any] | None = None
 
+    def _convert(self, value_string: str) -> str:
+        if value_string == "":
+            raise ValueError("String is empty")
+
+        return value_string
+
     def _validate(self, value: Any) -> None:
         if not isinstance(value, str):
             raise TypeError(f"{value} is {type(value)} and not {str}")
