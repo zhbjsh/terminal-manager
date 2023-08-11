@@ -92,7 +92,7 @@ windows_ps = Collection(
             "$x = Get-CimInstance Win32_ComputerSystemProduct | "
             + "Select Vendor,Name,Version; "
             + "$x.Name; "
-            + "$x.Version: "
+            + "$x.Version; "
             + "$x.Vendor",
             sensors=[
                 TextSensor(
