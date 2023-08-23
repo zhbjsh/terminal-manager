@@ -185,12 +185,15 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "echo $(($(cat /sys/class/thermal/thermal_zone0/temp) / 1000))",
+            "for x in $(ls -d /sys/class/thermal/thermal_zone*); do "
+            + "echo $(cat $x/type),$(($(cat $x/temp)/1000)); done",
             interval=60,
             sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
+                    dynamic=True,
+                    separator=",",
                     unit="°C",
                 )
             ],
