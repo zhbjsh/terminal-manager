@@ -115,7 +115,7 @@ linux = Collection(
             + "if($0~/^Hardware/){c=$2} "
             + "if($0~/^Model/){d=$2}} "
             + "END{print a; print b+1; print c; print d}' | "
-            + 'sed -e "s/[[:space:]]\+/ /g"',
+            + r'sed -e "s/[[:space:]]\+/ /g"',
             sensors=[
                 TextSensor(
                     SensorName.CPU_NAME,
@@ -157,7 +157,8 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "df -k | awk '/^\/dev\// {"
+            "df -k | "
+            + r"awk '/^\/dev\// {"
             + "x=$4; "
             + '$1=$2=$3=$4=$5=""; '
             + 'sub(/^ +/, "", $0); '
