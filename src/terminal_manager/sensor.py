@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field, replace
+import re
 from typing import TYPE_CHECKING, Any
 
 from .event import Event
@@ -66,8 +66,7 @@ class Sensor:
     def _convert(self, value_string: str) -> Any:
         return value_string
 
-    def _validate(self, value: Any) -> None:
-        ...
+    def _validate(self, value: Any) -> None: ...
 
     def _update_value(self, manager: Manager, data: str | None) -> None:
         if data is None:
@@ -79,7 +78,7 @@ class Sensor:
             value_string = self._render(data)
             value = self._convert(value_string)
             self._validate(value)
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             self.value = None
             manager.logger.debug(
                 "%s: %s => %s (%s)", manager.name, self.key, self.value, exc
@@ -142,6 +141,7 @@ class Sensor:
             TypeError
             ValueError
             CommandError
+
         """
         self._validate(value)
         command = self._get_control_command(value)

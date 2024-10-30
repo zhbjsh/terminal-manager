@@ -1,9 +1,11 @@
 """Terminal manager."""
+
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 from .collection import Collection
@@ -124,6 +126,7 @@ class Manager(Collection, Synchronizer):
     def _last_known_value_or_none(self, sensor_key: str) -> Any | None:
         if sensor := self.sensors_by_key.get(sensor_key):
             return sensor.last_known_value
+        return None
 
     async def async_close(self) -> None:
         """Close."""
@@ -133,15 +136,12 @@ class Manager(Collection, Synchronizer):
 
         Execute sensor commands that passed their `interval` or
         all sensor commands with `force=True`.
-
         """
         for command in self.sensor_commands:
             if not (force or command.should_update):
                 return
-            try:
+            with suppress(CommandError):
                 await self.async_execute_command(command)
-            except CommandError:
-                pass
 
     async def async_execute_command_string(
         self, string: str, command_timeout: int | None = None
@@ -150,6 +150,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError
+
         """
         raise CommandError("Not implemented")
 
@@ -160,6 +161,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError
+
         """
         return await command.async_execute(self, variables)
 
@@ -170,6 +172,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError
+
         """
         command = self.get_action_command(key)
         return await self.async_execute_command(command, variables)
@@ -181,6 +184,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError (only with `raise_errors=True`)
+
         """
         sensors = await self.async_poll_sensors([key], raise_errors=raise_errors)
         return sensors[0]
@@ -192,6 +196,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError (only with `raise_errors=True`)
+
         """
         sensors = [self.get_sensor(key) for key in keys]
         commands = [self.get_sensor_command(key) for key in set(keys)]
@@ -214,6 +219,7 @@ class Manager(Collection, Synchronizer):
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
+
         """
         sensors = await self.async_set_sensor_values(
             [key], [value], raise_errors=raise_errors
@@ -229,6 +235,7 @@ class Manager(Collection, Synchronizer):
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
+
         """
         sensors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
 
@@ -253,6 +260,7 @@ class Manager(Collection, Synchronizer):
         Raises:
             PermissionError
             CommandError
+
         """
         if not self.allow_turn_off:
             raise PermissionError("Not allowed to turn off")
@@ -264,5 +272,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError
+
         """
         return await self.async_run_action(ActionKey.RESTART)

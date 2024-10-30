@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import re as _re
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field
+import re as _re
 from string import Template
 from time import time
 from typing import TYPE_CHECKING
@@ -89,6 +89,7 @@ class Command:
 
         Raises:
             CommandError
+
         """
         variables = variables or {}
         sensor_values_by_key = {}
@@ -96,13 +97,13 @@ class Command:
 
         try:
             string = VariableTemplate(string).substitute(variables)
-        except Exception as exc:
-            raise CommandError(f"Failed to substitute variable ({exc})")
+        except Exception as exc:  # noqa: BLE001
+            raise CommandError(f"Failed to substitute variable ({exc})") from exc
 
         try:
             sensors = await manager.async_poll_sensors(self.required_sensors)
-        except Exception as exc:
-            raise CommandError(f"Failed to poll sensors ({exc})")
+        except Exception as exc:  # noqa: BLE001
+            raise CommandError(f"Failed to poll sensors ({exc})") from exc
 
         for sensor in sensors:
             if sensor.value is not None:
@@ -117,8 +118,8 @@ class Command:
 
         try:
             return self._render(string)
-        except Exception as exc:
-            raise CommandError(f"Failed to render string ({exc})")
+        except Exception as exc:  # noqa: BLE001
+            raise CommandError(f"Failed to render string ({exc})") from exc
 
     async def async_execute(
         self, manager: Manager, variables: dict | None = None
@@ -127,6 +128,7 @@ class Command:
 
         Raises:
             CommandError
+
         """
         try:
             string = await self.async_generate_string(manager, variables)

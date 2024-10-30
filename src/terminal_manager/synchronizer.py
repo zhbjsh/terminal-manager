@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 from collections.abc import Coroutine
 from functools import wraps
+import inspect
 
 
 def locked(coro: Coroutine):
