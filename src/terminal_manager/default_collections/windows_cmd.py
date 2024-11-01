@@ -7,12 +7,12 @@ windows_cmd = Collection(
     "Windows",
     [
         ActionCommand(
-            "shutdown -t 0",
+            "shutdown /s /t 0",
             ActionName.TURN_OFF,
             ActionKey.TURN_OFF,
         ),
         ActionCommand(
-            "shutdown -r -t 0",
+            "shutdown /r /t 0",
             ActionName.RESTART,
             ActionKey.RESTART,
         ),
