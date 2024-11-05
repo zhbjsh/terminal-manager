@@ -128,6 +128,10 @@ class Manager(Collection, Synchronizer):
             return sensor.last_known_value
         return None
 
+    def _clear_sensors(self) -> None:
+        for command in self.sensor_commands:
+            command.update_sensors(self, None)
+
     async def async_close(self) -> None:
         """Close."""
 
@@ -144,7 +148,9 @@ class Manager(Collection, Synchronizer):
                 await self.async_execute_command(command)
 
     async def async_execute_command_string(
-        self, string: str, command_timeout: int | None = None
+        self,
+        string: str,
+        command_timeout: int | None = None,
     ) -> CommandOutput:
         """Execute a command string.
 
@@ -155,7 +161,9 @@ class Manager(Collection, Synchronizer):
         raise CommandError("Not implemented")
 
     async def async_execute_command(
-        self, command: Command, variables: dict | None = None
+        self,
+        command: Command,
+        variables: dict | None = None,
     ) -> CommandOutput:
         """Execute a command.
 
@@ -166,7 +174,9 @@ class Manager(Collection, Synchronizer):
         return await command.async_execute(self, variables)
 
     async def async_run_action(
-        self, key: str, variables: dict | None = None
+        self,
+        key: str,
+        variables: dict | None = None,
     ) -> CommandOutput:
         """Run an action.
 
@@ -178,7 +188,10 @@ class Manager(Collection, Synchronizer):
         return await self.async_execute_command(command, variables)
 
     async def async_poll_sensor(
-        self, key: str, *, raise_errors: bool = False
+        self,
+        key: str,
+        *,
+        raise_errors: bool = False,
     ) -> Sensor:
         """Poll a sensor.
 
@@ -190,7 +203,10 @@ class Manager(Collection, Synchronizer):
         return sensors[0]
 
     async def async_poll_sensors(
-        self, keys: Sequence[str], *, raise_errors: bool = False
+        self,
+        keys: Sequence[str],
+        *,
+        raise_errors: bool = False,
     ) -> list[Sensor]:
         """Poll multiple sensors.
 
@@ -211,7 +227,11 @@ class Manager(Collection, Synchronizer):
         return sensors
 
     async def async_set_sensor_value(
-        self, key: str, value: Any, *, raise_errors: bool = False
+        self,
+        key: str,
+        value: Any,
+        *,
+        raise_errors: bool = False,
     ) -> Sensor:
         """Set the value of a controllable sensor.
 
@@ -227,7 +247,11 @@ class Manager(Collection, Synchronizer):
         return sensors[0]
 
     async def async_set_sensor_values(
-        self, keys: Sequence[str], values: Sequence[Any], *, raise_errors: bool = False
+        self,
+        keys: Sequence[str],
+        values: Sequence[Any],
+        *,
+        raise_errors: bool = False,
     ) -> list[Sensor]:
         """Set the value of multiple controllable sensors.
 

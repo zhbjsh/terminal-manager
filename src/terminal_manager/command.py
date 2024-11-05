@@ -122,7 +122,9 @@ class Command:
             raise CommandError(f"Failed to render string ({exc})") from exc
 
     async def async_execute(
-        self, manager: Manager, variables: dict | None = None
+        self,
+        manager: Manager,
+        variables: dict | None = None,
     ) -> CommandOutput:
         """Execute.
 
@@ -215,7 +217,9 @@ class SensorCommand(Command):
             sensor.update(manager, data[i] if len(data) > i else None)
 
     async def async_execute(
-        self, manager: Manager, variables: dict | None = None
+        self,
+        manager: Manager,
+        variables: dict | None = None,
     ) -> CommandOutput:
         try:
             output = await super().async_execute(manager, variables)
