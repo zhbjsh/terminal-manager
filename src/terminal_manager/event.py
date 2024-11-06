@@ -5,7 +5,7 @@ class Event:
     def __init__(self) -> None:
         self._subscribers: list[Callable] = []
 
-    def subscribe(self, subscriber) -> Callable:
+    def subscribe(self, subscriber: Callable) -> Callable:
         """Subscribe."""
         self._subscribers.append(subscriber)
 
@@ -14,7 +14,7 @@ class Event:
 
         return callback
 
-    def unsubscribe(self, subscriber) -> None:
+    def unsubscribe(self, subscriber: Callable) -> None:
         """Unsubscribe."""
         self._subscribers.remove(subscriber)
 
