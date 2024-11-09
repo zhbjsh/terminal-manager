@@ -7,7 +7,7 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError
+from .errors import CommandError, InvalidRequiredSensorError
 from .helpers import name_to_key
 from .sensor import Sensor
 
@@ -175,6 +175,13 @@ class SensorCommand(Command):
 
     def __post_init__(self):
         self.last_update: float | None = None
+
+        own_sensor_keys = self.sensors_by_key.keys()
+        for required_sensor_key in self.required_sensors:
+            if required_sensor_key in own_sensor_keys:
+                raise InvalidRequiredSensorError(
+                    "Sensors can't be from the same command"
+                )
 
     @property
     def should_update(self) -> bool:

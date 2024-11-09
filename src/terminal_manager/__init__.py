@@ -11,7 +11,7 @@ from typing import Any
 from .collection import Collection
 from .command import PLACEHOLDER_KEY, ActionCommand, Command, SensorCommand
 from .default_collections import ActionKey, SensorKey
-from .errors import CommandError
+from .errors import CommandError, InvalidRequiredSensorError, NameKeyError
 from .event import Event
 from .sensor import BinarySensor, NumberSensor, Sensor, TextSensor
 from .synchronizer import Synchronizer
