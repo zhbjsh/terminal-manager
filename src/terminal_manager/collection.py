@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from .command import ActionCommand, SensorCommand
+from .command import ActionCommand, Command, SensorCommand
 from .sensor import Sensor
 
 
@@ -17,6 +17,11 @@ class Collection:
         self.name = name
         self.set_action_commands(action_commands or [])
         self.set_sensor_commands(sensor_commands or [])
+        self.check()
+
+    @property
+    def commands(self) -> list[Command]:
+        return [*self.action_commands, *self.sensor_commands]
 
     @property
     def action_commands_by_key(self) -> dict[str, ActionCommand]:
@@ -41,12 +46,14 @@ class Collection:
     def set_action_commands(self, action_commands: list[ActionCommand]) -> None:
         """Set the action commands."""
         self.action_commands = []
+
         for command in action_commands:
             self.add_action_command(command)
 
     def set_sensor_commands(self, sensor_commands: list[SensorCommand]) -> None:
         """Set the sensor commands."""
         self.sensor_commands = []
+
         for command in sensor_commands:
             self.add_sensor_command(command)
 
@@ -98,3 +105,8 @@ class Collection:
 
         if not command.sensors_by_key:
             self.sensor_commands.remove(command)
+
+    def check(self) -> None:
+        """Check commands."""
+        for command in self.commands:
+            command.check(self)

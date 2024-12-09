@@ -7,12 +7,12 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, InvalidRequiredSensorError
+from .errors import CommandError, CommandLoopError, InvalidSensorError
 from .helpers import name_to_key
 from .sensor import Sensor
 
 if TYPE_CHECKING:
-    from . import CommandOutput, Manager
+    from . import Collection, CommandOutput, Manager
 
 SENSOR_DELIMITER = "&"
 VARIABLE_DELIMITER = "@"
@@ -60,66 +60,80 @@ class VariableTemplate(Template):
     """
 
 
+class DynamicData:
+    def __init__(
+        self,
+        sensor: Sensor,
+        id_field: str,
+        data_field: str,
+        name_field: str | None,
+    ) -> None:
+        self.id = id_field.strip()
+        name = name_field.strip() if name_field else self.id
+        self.key = f"{sensor.key}_{name_to_key(name)}"
+        self.name = f"{sensor.name} {name}" if sensor.name else name
+        self.data = data_field
+
+
 @dataclass
 class Command:
     string: str
     _: KW_ONLY
     timeout: float | None = None
     renderer: Callable[[str], str] | None = None
+    _linked_sensors: set[str] = field(default_factory=set, init=False, repr=False)
 
     @property
     def required_variables(self) -> set[str]:
+        """Variables required to render the command string."""
         return set(VariableTemplate(self.string).get_identifiers())
 
     @property
     def required_sensors(self) -> set[str]:
+        """Sensors required to render the command string."""
         return set(SensorTemplate(self.string).get_identifiers())
+
+    @property
+    def linked_sensors(self) -> set[str]:
+        """Sensors to poll after execution of the command."""
+        return self._linked_sensors
+
+    @property
+    def sub_sensors(self) -> set[str]:
+        """Set of required and linked sensors."""
+        return {*self.required_sensors, *self.linked_sensors}
 
     def _render(self, string: str) -> str:
         if self.renderer:
             string = self.renderer(string)
+
         return string
 
-    async def async_generate_string(
-        self,
-        manager: Manager,
-        variables: dict | None = None,
-    ) -> str:
-        """Generate the string.
+    def check(self, collection: Collection) -> None:
+        """Check configuration.
 
         Raises:
-            CommandError
+            InvalidSensorError
+            CommandLoopError
 
         """
-        variables = variables or {}
-        sensor_values_by_key = {}
-        string = self.string
+        commands_by_key = collection.sensor_commands_by_sensor_key
+        commands = []
 
-        try:
-            string = VariableTemplate(string).substitute(variables)
-        except Exception as exc:  # noqa: BLE001
-            raise CommandError(f"Failed to substitute variable ({exc})") from exc
+        def detect_loop(command: Command) -> None:
+            commands.append(command)
+            sub_commands = []
+            for key in command.sub_sensors:
+                if key not in commands_by_key:
+                    continue
+                if (sub_command := commands_by_key[key]) in commands:
+                    raise CommandLoopError(f"Command loop detected: {key}")
+                if sub_command not in sub_commands:
+                    sub_commands.append(sub_command)
+            for sub_command in sub_commands:
+                detect_loop(sub_command)
 
-        try:
-            sensors = await manager.async_poll_sensors(self.required_sensors)
-        except Exception as exc:  # noqa: BLE001
-            raise CommandError(f"Failed to poll sensors ({exc})") from exc
-
-        for sensor in sensors:
-            if sensor.value is not None:
-                sensor_values_by_key[sensor.key] = sensor.value
-            else:
-                raise CommandError(f"Value of sensor {sensor.key} is None")
-
-        try:
-            string = SensorTemplate(string).substitute(sensor_values_by_key)
-        except Exception as exc:
-            raise CommandError(f"Failed to substitute sensor ({exc})") from exc
-
-        try:
-            return self._render(string)
-        except Exception as exc:  # noqa: BLE001
-            raise CommandError(f"Failed to render string ({exc})") from exc
+        detect_loop(self)
 
     async def async_execute(
         self,
@@ -132,26 +146,44 @@ class Command:
             CommandError
 
         """
-        try:
-            string = await self.async_generate_string(manager, variables)
-        except CommandError as exc:
-            manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
-            raise
+        variables = variables or {}
+        sensor_values_by_key = {}
+        string = self.string
 
         try:
-            output = await manager.async_execute_command_string(string, self.timeout)
-        except CommandError as exc:
-            manager.logger.debug("%s: %s => %s", manager.name, string, exc)
-            raise
+            self.check(manager)
+        except (CommandLoopError, InvalidSensorError) as exc:
+            raise CommandError(f"Command check failed ({exc})") from exc
 
-        manager.logger.debug(
-            "%s: %s => %s, %s, %s",
-            manager.name,
-            string,
-            output.stdout,
-            output.stderr,
-            output.code,
-        )
+        try:
+            string = VariableTemplate(string).substitute(variables)
+        except Exception as exc:
+            raise CommandError(f"Failed to substitute variable ({exc})") from exc
+
+        try:
+            sensors = await manager.async_poll_sensors(self.required_sensors)
+        except Exception as exc:
+            raise CommandError(f"Failed to poll required sensors ({exc})") from exc
+
+        for sensor in sensors:
+            if sensor.value is not None:
+                sensor_values_by_key[sensor.key] = sensor.value
+            else:
+                raise CommandError(f"Value of required sensor {sensor.key} is None")
+
+        try:
+            string = SensorTemplate(string).substitute(sensor_values_by_key)
+        except Exception as exc:
+            raise CommandError(f"Failed to substitute sensor ({exc})") from exc
+
+        try:
+            string = self._render(string)
+        except Exception as exc:
+            raise CommandError(f"Failed to render string ({exc})") from exc
+
+        output = await manager.async_execute_command_string(string, self.timeout)
+
+        await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
 
         return output
 
@@ -171,26 +203,32 @@ class ActionCommand(Command):
 class SensorCommand(Command):
     _: KW_ONLY
     interval: int | None = None
+    separator: str | None = None
     sensors: list[Sensor] = field(default_factory=list)
 
     def __post_init__(self):
         self.last_update: float | None = None
 
-        own_sensor_keys = self.sensors_by_key.keys()
-        for required_sensor_key in self.required_sensors:
-            if required_sensor_key in own_sensor_keys:
-                raise InvalidRequiredSensorError(
-                    "Sensors can't be from the same command"
-                )
+    @property
+    def linked_sensors(self) -> set[str]:
+        linked_sensors = {*self._linked_sensors}
+
+        for sensor in self.sensors:
+            linked_sensors.update(sensor.linked_sensors)
+
+        return {key for key in linked_sensors if key not in self.sensors_by_key}
 
     @property
     def should_update(self) -> bool:
         if not self.interval:
             return False
+
         if not self.last_update:
             return True
+
         if time() - self.last_update < self.interval:
             return False
+
         return True
 
     @property
@@ -201,6 +239,27 @@ class SensorCommand(Command):
             for sensor in (command_sensor, *command_sensor.child_sensors)
             if command_sensor.key != PLACEHOLDER_KEY
         }
+
+    def check(self, collection: Collection) -> None:
+        """Check command configuration.
+
+        Raises:
+            InvalidSensorError
+            CommandLoopError
+
+        """
+        dynamic = False
+
+        for sensor in self.sensors:
+            if sensor.dynamic:
+                dynamic = True
+            if dynamic and not sensor.dynamic:
+                raise InvalidSensorError(
+                    f"Static sensor can't be defined after dynamic sensor: {sensor.key}"
+                )
+            sensor.check(collection)
+
+        super().check(collection)
 
     def remove_sensor(self, key: str) -> None:
         """Remove a sensor."""
@@ -217,11 +276,34 @@ class SensorCommand(Command):
         else:
             data = []
 
+        dyn_start = None
+        
         for i, sensor in enumerate(self.sensors):
             if sensor.dynamic:
-                sensor.update(manager, data[i:] or None)
-                return
-            sensor.update(manager, data[i] if len(data) > i else None)
+                dyn_start = i
+                break
+            sensor_data = data[i] if len(data) > i else None
+            sensor.update(manager, sensor_data)
+
+        if dyn_start is None:
+            return
+
+        dyn_data = data[dyn_start:]
+        dyn_sensors = self.sensors[dyn_start:]
+        dyn_count = len(dyn_sensors)
+
+        for i, sensor in enumerate(dyn_sensors):
+            sensor_data = [
+                DynamicData(
+                    sensor,
+                    fields[0],
+                    fields[i + 1],
+                    fields[dyn_count + 1] if len(fields) > dyn_count + 1 else None,
+                )
+                for line in dyn_data
+                if len(fields := line.split(self.separator)) > dyn_count
+            ] or None
+            sensor.update(manager, sensor_data or None)
 
     async def async_execute(
         self,

@@ -164,12 +164,12 @@ linux = Collection(
             + 'sub(/^ +/, "", $0); '
             + 'print $0 "|" x}\'',
             interval=60,
+            separator="|",
             sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
                     SensorKey.FREE_DISK_SPACE,
                     dynamic=True,
-                    separator="|",
                     unit="KiB",
                 )
             ],
@@ -189,12 +189,12 @@ linux = Collection(
             "for x in $(ls -d /sys/class/thermal/thermal_zone*); do "
             + "echo $(cat $x/type),$(($(cat $x/temp)/1000)); done",
             interval=60,
+            separator=",",
             sensors=[
                 NumberSensor(
                     SensorName.TEMPERATURE,
                     SensorKey.TEMPERATURE,
                     dynamic=True,
-                    separator=",",
                     unit="°C",
                 )
             ],

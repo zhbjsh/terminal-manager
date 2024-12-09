@@ -26,11 +26,13 @@ class AsyncRLock(asyncio.Lock):
             await super().acquire()
             self._task = asyncio.current_task()
             assert self._depth == 0
+
         self._depth += 1
 
     def release(self) -> None:
         if self._depth > 0:
             self._depth -= 1
+
         if self._depth == 0:
             super().release()
             self._task = None

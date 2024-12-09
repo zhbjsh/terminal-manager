@@ -5,12 +5,13 @@ from dataclasses import KW_ONLY, dataclass, field, replace
 import re
 from typing import TYPE_CHECKING, Any
 
+from .errors import InvalidSensorError
 from .event import Event
 from .helpers import name_to_key
 
 if TYPE_CHECKING:
-    from . import Manager
-    from .command import Command
+    from . import Collection, Manager
+    from .command import Command, DynamicData
 
 TRUE_STRINGS = ["true", "enabled", "on", "active", "1"]
 FALSE_STRINGS = ["false", "disabled", "off", "inactive", "0"]
@@ -22,7 +23,6 @@ class Sensor:
     key: str | None = None
     _: KW_ONLY
     dynamic: bool = False
-    separator: str | None = None
     unit: str | None = None
     renderer: Callable[[str], str] | None = None
     command_set: Command | None = None
@@ -37,6 +37,7 @@ class Sensor:
         self.on_update = Event()
         self.on_child_add = Event()
         self.on_child_remove = Event()
+        self._linked_sensors = set()
 
     @property
     def controllable(self) -> bool:
@@ -46,8 +47,22 @@ class Sensor:
     def child_sensors_by_key(self) -> dict[str, Sensor]:
         return {child.key: child for child in self.child_sensors}
 
+    @property
+    def linked_sensors(self) -> set[str]:
+        return self._linked_sensors
+
     def _get_control_command(self, _: Any) -> Command | None:
         return self.command_set
+
+    def _make_child(self, dynamic_data: DynamicData) -> Sensor:
+        child = replace(
+            self,
+            name=dynamic_data.name,
+            key=dynamic_data.key,
+            dynamic=False,
+        )
+        child.id = dynamic_data.id
+        return child
 
     def _add_child(self, child: Sensor) -> None:
         self.child_sensors.append(child)
@@ -88,32 +103,21 @@ class Sensor:
         self.value = self.last_known_value = value
         manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
 
-    def _update_child_sensors(self, manager: Manager, data: list[str] | None) -> None:
+    def _update_child_sensors(
+        self,
+        manager: Manager,
+        data: list[DynamicData] | None,
+    ) -> None:
         if data is None:
             for child in self.child_sensors:
                 child.update(manager, None)
             return
 
-        dynamic_data_list = [
-            DynamicData(self.name, self.key, *fields)
-            for fields in (line.split(self.separator, 2) for line in data)
-            if len(fields) >= 2
-        ]
+        dynamic_data_by_key = {dynamic_data.key: dynamic_data for dynamic_data in data}
 
-        dynamic_data_by_key = {
-            dynamic_data.key: dynamic_data for dynamic_data in dynamic_data_list
-        }
-
-        for key, dynamic_data in dynamic_data_by_key.items():
-            if key not in self.child_sensors_by_key:
-                child = replace(
-                    self,
-                    name=dynamic_data.name,
-                    key=dynamic_data.key,
-                    dynamic=False,
-                    separator=None,
-                )
-                child.id = dynamic_data.id
+        for dynamic_data in data:
+            if dynamic_data.key not in self.child_sensors_by_key:
+                child = self._make_child(dynamic_data)
                 self._add_child(child)
 
         for child in self.child_sensors:
@@ -123,7 +127,18 @@ class Sensor:
             else:
                 self._remove_child(child)
 
-    def update(self, manager: Manager, data: Any) -> None:
+    def check(self, collection: Collection) -> None:
+        """Check configuration.
+
+        Raises:
+            InvalidSensorError
+
+        """
+        for key in self.linked_sensors:
+            if not collection.sensors_by_key.get(key):
+                raise InvalidSensorError(f"Linked sensor not found: {key}")
+
+    def update(self, manager: Manager, data: str | list[DynamicData] | None) -> None:
         """Update and notify `on_update` subscribers."""
         if self.dynamic:
             self.value = self.last_known_value = None
@@ -262,17 +277,45 @@ class BinarySensor(Sensor):
             raise TypeError(f"{value} is {type(value)} and not {bool}")
 
 
-class DynamicData:
-    def __init__(
-        self,
-        parent_name: str | None,
-        parent_key: str,
-        id_field: str,
-        data_field: str,
-        name_field: str | None = None,
-    ) -> None:
-        self.id = id_field.strip()
-        name = name_field.strip() if name_field else self.id
-        self.key = f"{parent_key}_{name_to_key(name)}"
-        self.name = f"{parent_name} {name}" if parent_name else name
-        self.data = data_field
+@dataclass
+class VersionSensor(TextSensor):
+    _: KW_ONLY
+    latest: str | None = None
+
+    @property
+    def linked_sensors(self) -> set[str]:
+        if key := self.latest:
+            return {*self._linked_sensors, key}
+
+        return self._linked_sensors
+
+    def _make_child(self, dynamic_data: DynamicData) -> Sensor:
+        child: VersionSensor = super()._make_child(dynamic_data)
+
+        if key := self.latest:
+            child.latest = f"{key}_{name_to_key(child.id)}"
+
+        return child
+
+    def check(self, collection: Collection) -> None:
+        super().check(collection)
+
+        if not (key := self.latest):
+            return
+
+        sensor = collection.sensors_by_key[key]
+
+        if not isinstance(sensor, VersionSensor):
+            raise InvalidSensorError(
+                f"Latest version sensor must be a version sensor: {key}"
+            )
+
+        if sensor.latest:
+            raise InvalidSensorError(
+                f"Latest version sensor can't have a 'latest' attribute: {key}"
+            )
+
+        if sensor.command_set:
+            raise InvalidSensorError(
+                f"Latest version sensor can't have a 'command_set' attribute: {key}"
+            )

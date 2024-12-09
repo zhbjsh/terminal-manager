@@ -11,9 +11,9 @@ from typing import Any
 from .collection import Collection
 from .command import PLACEHOLDER_KEY, ActionCommand, Command, SensorCommand
 from .default_collections import ActionKey, SensorKey
-from .errors import CommandError, InvalidRequiredSensorError, NameKeyError
+from .errors import CommandError, CommandLoopError, InvalidSensorError, NameKeyError
 from .event import Event
-from .sensor import BinarySensor, NumberSensor, Sensor, TextSensor
+from .sensor import BinarySensor, NumberSensor, Sensor, TextSensor, VersionSensor
 from .synchronizer import Synchronizer
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,6 +126,7 @@ class Manager(Collection, Synchronizer):
     def _last_known_value_or_none(self, sensor_key: str) -> Any | None:
         if sensor := self.sensors_by_key.get(sensor_key):
             return sensor.last_known_value
+
         return None
 
     def _clear_sensors(self) -> None:
@@ -171,7 +172,22 @@ class Manager(Collection, Synchronizer):
             CommandError
 
         """
-        return await command.async_execute(self, variables)
+        try:
+            output = await command.async_execute(self, variables)
+        except CommandError as exc:
+            self.logger.debug("%s: %s => %s", self.name, command.string, exc)
+            raise
+
+        self.logger.debug(
+            "%s: %s => %s, %s, %s",
+            self.name,
+            output.command_string,
+            output.stdout,
+            output.stderr,
+            output.code,
+        )
+
+        return output
 
     async def async_run_action(
         self,

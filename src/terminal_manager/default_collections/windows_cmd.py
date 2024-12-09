@@ -171,12 +171,12 @@ windows_cmd = Collection(
             + 'findstr ":"\') do '
             + "@echo %i^|%j",
             interval=60,
+            separator="|",
             sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
                     SensorKey.FREE_DISK_SPACE,
                     dynamic=True,
-                    separator="|",
                     unit="B",
                 )
             ],

@@ -166,12 +166,12 @@ windows_ps = Collection(
             + "Select DeviceID,FreeSpace | "
             + 'ForEach-Object {$_.DeviceID + "|" + $_.FreeSpace}',
             interval=60,
+            separator="|",
             sensors=[
                 NumberSensor(
                     SensorName.FREE_DISK_SPACE,
                     SensorKey.FREE_DISK_SPACE,
                     dynamic=True,
-                    separator="|",
                     unit="B",
                 )
             ],
