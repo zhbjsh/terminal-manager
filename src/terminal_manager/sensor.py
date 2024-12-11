@@ -136,7 +136,7 @@ class Sensor:
         """
         for key in self.linked_sensors:
             if not collection.sensors_by_key.get(key):
-                raise InvalidSensorError(f"Linked sensor not found: {key}")
+                raise InvalidSensorError(self.key, f"'{key}' not found")
 
     def update(self, manager: Manager, data: str | list[DynamicData] | None) -> None:
         """Update and notify `on_update` subscribers."""
@@ -306,16 +306,10 @@ class VersionSensor(TextSensor):
         sensor = collection.sensors_by_key[key]
 
         if not isinstance(sensor, VersionSensor):
-            raise InvalidSensorError(
-                f"Latest version sensor must be a version sensor: {key}"
-            )
+            raise InvalidSensorError(self.key, f"'{key}' is not a version sensor")
 
         if sensor.latest:
-            raise InvalidSensorError(
-                f"Latest version sensor can't have a 'latest' attribute: {key}"
-            )
+            raise InvalidSensorError(self.key, f"'{key}' has 'latest' attribute")
 
         if sensor.command_set:
-            raise InvalidSensorError(
-                f"Latest version sensor can't have a 'command_set' attribute: {key}"
-            )
+            raise InvalidSensorError(self.key, f"'{key}' has 'command_set' attribute")

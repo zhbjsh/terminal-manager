@@ -127,7 +127,7 @@ class Command:
                 if key not in commands_by_key:
                     continue
                 if (sub_command := commands_by_key[key]) in commands:
-                    raise CommandLoopError(f"Command loop detected: {key}")
+                    raise CommandLoopError(key)
                 if sub_command not in sub_commands:
                     sub_commands.append(sub_command)
             for sub_command in sub_commands:
@@ -254,9 +254,7 @@ class SensorCommand(Command):
             if sensor.dynamic:
                 dynamic = True
             if dynamic and not sensor.dynamic:
-                raise InvalidSensorError(
-                    f"Static sensor can't be defined after dynamic sensor: {sensor.key}"
-                )
+                raise InvalidSensorError(sensor.key, "Sensor must be dynamic")
             sensor.check(collection)
 
         super().check(collection)
@@ -277,7 +275,7 @@ class SensorCommand(Command):
             data = []
 
         dyn_start = None
-        
+
         for i, sensor in enumerate(self.sensors):
             if sensor.dynamic:
                 dyn_start = i
