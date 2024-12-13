@@ -16,6 +16,11 @@ linux = Collection(
             ActionName.RESTART,
             ActionKey.RESTART,
         ),
+        ActionCommand(
+            "xdg-screensaver lock",
+            ActionName.LOCK,
+            ActionKey.LOCK,
+        ),
     ],
     [
         # TODO: OS_ARCHITECTURE

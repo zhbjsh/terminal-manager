@@ -4,7 +4,7 @@ from ..sensor import BinarySensor, NumberSensor, TextSensor
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 windows_ps = Collection(
-    "Windows (Power Shell)",
+    "Windows (PowerShell)",
     [
         ActionCommand(
             "Stop-Computer -Force",
@@ -15,6 +15,11 @@ windows_ps = Collection(
             "Restart-Computer -Force",
             ActionName.RESTART,
             ActionKey.RESTART,
+        ),
+        ActionCommand(
+            "rundll32.exe user32.dll,LockWorkStation",
+            ActionName.LOCK,
+            ActionKey.LOCK,
         ),
     ],
     [

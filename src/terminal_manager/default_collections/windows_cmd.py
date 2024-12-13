@@ -16,6 +16,11 @@ windows_cmd = Collection(
             ActionName.RESTART,
             ActionKey.RESTART,
         ),
+        ActionCommand(
+            "rundll32.exe user32.dll,LockWorkStation",
+            ActionName.LOCK,
+            ActionKey.LOCK,
+        ),
     ],
     [
         # TODO: WAKE_ON_LAN

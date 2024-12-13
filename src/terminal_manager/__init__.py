@@ -321,3 +321,12 @@ class Manager(Collection, Synchronizer):
 
         """
         return await self.async_run_action(ActionKey.RESTART)
+    
+    async def async_lock(self) -> CommandOutput:
+        """Locks by running the `LOCK` action.
+
+        Raises:
+            CommandError
+
+        """
+        return await self.async_run_action(ActionKey.LOCK)

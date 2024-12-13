@@ -1,11 +1,13 @@
 class ActionKey:
     TURN_OFF = "turn_off"
     RESTART = "restart"
+    LOCK = "lock"
 
 
 class ActionName:
     TURN_OFF = "Turn off"
     RESTART = "Restart"
+    LOCK = "Lock"
 
 
 class SensorKey:
