@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field
-import re as _re
+import re
 from string import Template
 from time import time
 from typing import TYPE_CHECKING
@@ -39,7 +39,7 @@ class Template(Template):
 class SensorTemplate(Template):
     delimiter = SENSOR_DELIMITER
     pattern = rf"""
-    {_re.escape(delimiter)}{{(?:
+    {re.escape(delimiter)}{{(?:
       (?P<braced>{Template.idpattern})|
       (?P<invalid>)|
       (?P<named>)|
@@ -51,7 +51,7 @@ class SensorTemplate(Template):
 class VariableTemplate(Template):
     delimiter = VARIABLE_DELIMITER
     pattern = rf"""
-    {_re.escape(delimiter)}{{(?:
+    {re.escape(delimiter)}{{(?:
       (?P<braced>{Template.idpattern})|
       (?P<invalid>)|
       (?P<named>)|
@@ -121,8 +121,9 @@ class Command:
         commands = []
 
         def detect_loop(command: Command) -> None:
-            commands.append(command)
             sub_commands = []
+            if command not in commands:
+                commands.append(command)
             for key in command.sub_sensors:
                 if key not in commands_by_key:
                     continue
@@ -130,8 +131,7 @@ class Command:
                     raise CommandLoopError(key)
                 if sub_command not in sub_commands:
                     sub_commands.append(sub_command)
-            for sub_command in sub_commands:
-                detect_loop(sub_command)
+                    detect_loop(sub_command)
 
         detect_loop(self)
 

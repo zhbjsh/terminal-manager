@@ -1,6 +1,9 @@
-from ..collection import Collection
-from ..command import ActionCommand, SensorCommand
-from ..sensor import BinarySensor, NumberSensor, TextSensor
+"""The Linux collection."""
+
+from terminal_manager.collection import Collection
+from terminal_manager.command import ActionCommand, SensorCommand
+from terminal_manager.sensor import BinarySensor, NumberSensor, TextSensor
+
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 linux = Collection(
@@ -84,11 +87,11 @@ linux = Collection(
         ),
         SensorCommand(
             "dmidecode | grep -A4 '^System Information' | awk -F\": \" '{"
-            + "if($0~/Product Name:/){a=$2} "
-            + "if($0~/Version:/){b=$2} "
-            + "if($0~/Manufacturer:/){c=$2} "
-            + "if($0~/Serial Number:/){d=$2}} "
-            + "END{print a; print b; print c; print d}'",
+            "if($0~/Product Name:/){a=$2} "
+            "if($0~/Version:/){b=$2} "
+            "if($0~/Manufacturer:/){c=$2} "
+            "if($0~/Serial Number:/){d=$2}} "
+            "END{print a; print b; print c; print d}'",
             sensors=[
                 TextSensor(
                     SensorName.DEVICE_NAME,
@@ -110,12 +113,12 @@ linux = Collection(
         ),
         SensorCommand(
             'cat /proc/cpuinfo | awk -F": " \'{'
-            + "if($0~/^model name/){a=$2} "
-            + "if($0~/^processor/){b=$2} "
-            + "if($0~/^Hardware/){c=$2} "
-            + "if($0~/^Model/){d=$2}} "
-            + "END{print a; print b+1; print c; print d}' | "
-            + r'sed -e "s/[[:space:]]\+/ /g"',
+            "if($0~/^model name/){a=$2} "
+            "if($0~/^processor/){b=$2} "
+            "if($0~/^Hardware/){c=$2} "
+            "if($0~/^Model/){d=$2}} "
+            "END{print a; print b+1; print c; print d}' | "
+            r'sed -e "s/[[:space:]]\+/ /g"',
             sensors=[
                 TextSensor(
                     SensorName.CPU_NAME,
@@ -158,11 +161,11 @@ linux = Collection(
         ),
         SensorCommand(
             "df -k | "
-            + r"awk '/^\/dev\// {"
-            + "x=$4; "
-            + '$1=$2=$3=$4=$5=""; '
-            + 'sub(/^ +/, "", $0); '
-            + 'print $0 "|" x}\'',
+            r"awk '/^\/dev\// {"
+            "x=$4; "
+            '$1=$2=$3=$4=$5=""; '
+            'sub(/^ +/, "", $0); '
+            'print $0 "|" x}\'',
             interval=60,
             separator="|",
             sensors=[
@@ -187,7 +190,7 @@ linux = Collection(
         ),
         SensorCommand(
             "for x in $(ls -d /sys/class/thermal/thermal_zone*); do "
-            + "echo $(cat $x/type),$(($(cat $x/temp)/1000)); done",
+            "echo $(cat $x/type),$(($(cat $x/temp)/1000)); done",
             interval=60,
             separator=",",
             sensors=[

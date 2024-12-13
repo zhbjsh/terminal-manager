@@ -1,6 +1,9 @@
-from ..collection import Collection
-from ..command import ActionCommand, SensorCommand
-from ..sensor import NumberSensor, TextSensor
+"""The Windows cmd collection."""
+
+from terminal_manager.collection import Collection
+from terminal_manager.command import ActionCommand, SensorCommand
+from terminal_manager.sensor import NumberSensor, TextSensor
+
 from .const import ActionKey, ActionName, SensorKey, SensorName
 
 windows_cmd = Collection(
@@ -21,13 +24,13 @@ windows_cmd = Collection(
         # TODO: WAKE_ON_LAN
         SensorCommand(
             "for /f %i in ('wmic path win32_ip4routetable "
-            + "where \"Destination='0.0.0.0'\" "
-            + "get InterfaceIndex ^| "
-            + 'findstr /r "\\<[0-9][0-9]*\\>"\') do '
-            + '@for /f "skip=2 tokens=2,3 delims=," %j in (\'wmic nic '
-            + 'where "InterfaceIndex=%i" '
-            + "get MACAddress^,NetConnectionID /format:csv') do "
-            + "@echo %j & @echo %k",
+            "where \"Destination='0.0.0.0'\" "
+            "get InterfaceIndex ^| "
+            'findstr /r "\\<[0-9][0-9]*\\>"\') do '
+            '@for /f "skip=2 tokens=2,3 delims=," %j in (\'wmic nic '
+            'where "InterfaceIndex=%i" '
+            "get MACAddress^,NetConnectionID /format:csv') do "
+            "@echo %j & @echo %k",
             sensors=[
                 TextSensor(
                     SensorName.MAC_ADDRESS,
@@ -50,8 +53,8 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             'for /f "skip=1 tokens=*" %i in (\'wmic ComputerSystem '
-            + "get SystemType') do "
-            + "@echo %i",
+            "get SystemType') do "
+            "@echo %i",
             sensors=[
                 TextSensor(
                     SensorName.MACHINE_TYPE,
@@ -142,8 +145,8 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             'for /f "skip=1" %i in (\'wmic ComputerSystem '
-            + "get TotalPhysicalMemory') do "
-            + "@echo %i",
+            "get TotalPhysicalMemory') do "
+            "@echo %i",
             sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
@@ -154,8 +157,8 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             'for /f "skip=1" %i in (\'wmic OS '
-            + "get FreePhysicalMemory') do "
-            + "@echo %i",
+            "get FreePhysicalMemory') do "
+            "@echo %i",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -167,9 +170,9 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             'for /f "tokens=1,2" %i in (\'wmic LogicalDisk '
-            + "get DeviceID^,FreeSpace ^| "
-            + 'findstr ":"\') do '
-            + "@echo %i^|%j",
+            "get DeviceID^,FreeSpace ^| "
+            'findstr ":"\') do '
+            "@echo %i^|%j",
             interval=60,
             separator="|",
             sensors=[
@@ -194,10 +197,10 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             "for /f %i in ('wmic /namespace:\\\\root\\wmi "
-            + "path MSAcpi_ThermalZoneTemperature "
-            + "get CurrentTemperature ^| "
-            + 'findstr /r "\\<[0-9][0-9]*\\>"\') do '
-            + "@set /a x=(%i - 2732) / 10",
+            "path MSAcpi_ThermalZoneTemperature "
+            "get CurrentTemperature ^| "
+            'findstr /r "\\<[0-9][0-9]*\\>"\') do '
+            "@set /a x=(%i - 2732) / 10",
             interval=60,
             sensors=[
                 NumberSensor(
@@ -209,8 +212,8 @@ windows_cmd = Collection(
         ),
         SensorCommand(
             "wmic process get processId | "
-            + 'findstr /r "\\<[0-9][0-9]*\\>" | '
-            + 'find /c /v ""',
+            'findstr /r "\\<[0-9][0-9]*\\>" | '
+            'find /c /v ""',
             interval=60,
             sensors=[
                 NumberSensor(
