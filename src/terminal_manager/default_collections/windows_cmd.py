@@ -17,7 +17,7 @@ windows_cmd = Collection(
             ActionKey.RESTART,
         ),
         ActionCommand(
-            "rundll32.exe user32.dll,LockWorkStation",
+            'powershell.exe -Command "\\"Public/Invoke-CommandAs.ps1\\", \\"Private/Invoke-ScheduledTask.ps1\\" | % { . ([ScriptBlock]::Create((New-Object Net.WebClient).DownloadString(\\"https://raw.githubusercontent.com/mkellerman/Invoke-CommandAs/master/Invoke-CommandAs/${_}\\"))) }; Invoke-CommandAs -ScriptBlock { rundll32.exe user32.dll,LockWorkStation } -AsInteractive \\"${Env:USER}\\""',
             ActionName.LOCK,
             ActionKey.LOCK,
         ),
