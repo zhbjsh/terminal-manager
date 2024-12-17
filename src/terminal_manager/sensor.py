@@ -278,7 +278,7 @@ class BinarySensor(Sensor):
 
 
 @dataclass
-class VersionSensor(TextSensor):
+class VersionSensor(Sensor):
     _: KW_ONLY
     latest: str | None = None
 
@@ -288,6 +288,16 @@ class VersionSensor(TextSensor):
             return {*self._linked_sensors, key}
 
         return self._linked_sensors
+
+    def _convert(self, value_string: str) -> str:
+        if value_string == "":
+            raise ValueError("String is empty")
+
+        return value_string
+
+    def _validate(self, value: Any) -> None:
+        if not isinstance(value, str):
+            raise TypeError(f"{value} is {type(value)} and not {str}")
 
     def _make_child(self, dynamic_data: DynamicData) -> Sensor:
         child: VersionSensor = super()._make_child(dynamic_data)
