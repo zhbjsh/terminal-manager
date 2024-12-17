@@ -70,7 +70,7 @@ class DynamicData:
     ) -> None:
         self.id = id_field.strip()
         name = name_field.strip() if name_field else self.id
-        self.key = f"{sensor.key}_{name_to_key(name)}"
+        self.key = f"{sensor.key}_{name_to_key(self.id)}"
         self.name = f"{sensor.name} {name}" if sensor.name else name
         self.data = data_field
 
