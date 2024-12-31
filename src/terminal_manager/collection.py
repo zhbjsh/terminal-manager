@@ -79,19 +79,39 @@ class Collection:
         self.sensor_commands.append(deepcopy(command))
 
     def get_action_command(self, key: str) -> ActionCommand:
-        """Get an action command."""
+        """Get an action command.
+
+        Raises:
+            KeyError
+
+        """
         return self.action_commands_by_key[key]
 
     def get_sensor_command(self, key: str) -> SensorCommand:
-        """Get a sensor command."""
+        """Get a sensor command.
+
+        Raises:
+            KeyError
+
+        """
         return self.sensor_commands_by_sensor_key[key]
 
     def get_sensor(self, key: str) -> Sensor:
-        """Get a sensor."""
+        """Get a sensor.
+
+        Raises:
+            KeyError
+
+        """
         return self.sensors_by_key[key]
 
     def remove_action_command(self, key: str) -> None:
-        """Remove an action command."""
+        """Remove an action command.
+
+        Raises:
+            KeyError
+
+        """
         command = self.get_action_command(key)
         self.action_commands.remove(command)
 
@@ -99,6 +119,10 @@ class Collection:
         """Remove a sensor.
 
         Remove the sensor command if it doesnt have any other sensors.
+
+        Raises:
+            KeyError
+
         """
         command = self.get_sensor_command(key)
         command.remove_sensor(key)

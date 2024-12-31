@@ -203,6 +203,7 @@ class Manager(Collection, Synchronizer):
         """Run an action.
 
         Raises:
+            KeyError
             CommandError
 
         """
@@ -218,6 +219,7 @@ class Manager(Collection, Synchronizer):
         """Poll a sensor.
 
         Raises:
+            KeyError
             CommandError (only with `raise_errors=True`)
 
         """
@@ -233,6 +235,7 @@ class Manager(Collection, Synchronizer):
         """Poll multiple sensors.
 
         Raises:
+            KeyError
             CommandError (only with `raise_errors=True`)
 
         """
@@ -258,6 +261,7 @@ class Manager(Collection, Synchronizer):
         """Set the value of a controllable sensor.
 
         Raises:
+            KeyError
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
@@ -278,6 +282,7 @@ class Manager(Collection, Synchronizer):
         """Set the value of multiple controllable sensors.
 
         Raises:
+            KeyError
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
@@ -305,6 +310,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             PermissionError
+            KeyError
             CommandError
 
         """
@@ -317,6 +323,7 @@ class Manager(Collection, Synchronizer):
         """Restart by running the `RESTART` action.
 
         Raises:
+            KeyError
             CommandError
 
         """
