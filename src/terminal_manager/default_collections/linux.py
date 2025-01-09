@@ -23,6 +23,7 @@ linux = Collection(
     [
         # TODO: OS_ARCHITECTURE
         SensorCommand(
+            "/sbin/ip route show default | awk '{print $5}' || "
             "/sbin/route -n | awk '/^0.0.0.0/ {print $NF}'",
             sensors=[
                 TextSensor(
@@ -86,12 +87,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "dmidecode | grep -A4 '^System Information' | awk -F\": \" '{"
-            "if($0~/Product Name:/){a=$2} "
-            "if($0~/Version:/){b=$2} "
-            "if($0~/Manufacturer:/){c=$2} "
-            "if($0~/Serial Number:/){d=$2}} "
-            "END{print a; print b; print c; print d}'",
+            '/sbin/dmidecode -t system | awk -F": " \''
+            "/Product Name:/ {a=$2} "
+            "/Version:/ {b=$2} "
+            "/Manufacturer:/ {c=$2} "
+            "/Serial Number:/ {d=$2} "
+            'END {print a"\\n"b"\\n"c"\\n"d}\'',
             sensors=[
                 TextSensor(
                     SensorName.DEVICE_NAME,
@@ -112,13 +113,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'cat /proc/cpuinfo | awk -F": " \'{'
-            "if($0~/^model name/){a=$2} "
-            "if($0~/^processor/){b=$2} "
-            "if($0~/^Hardware/){c=$2} "
-            "if($0~/^Model/){d=$2}} "
-            "END{print a; print b+1; print c; print d}' | "
-            r'sed -e "s/[[:space:]]\+/ /g"',
+            'cat /proc/cpuinfo | awk -F": " \''
+            "/^model name/ {a=$2} "
+            "/^processor/ {b=$2+1} "
+            "/^Hardware/ {c=$2} "
+            "/^Model/ {d=$2} "
+            'END {print a"\\n"b"\\n"c"\\n"d}\'',
             sensors=[
                 TextSensor(
                     SensorName.CPU_NAME,
@@ -160,12 +160,10 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "df -k | "
-            r"awk '/^\/dev\// {"
-            "x=$4; "
-            '$1=$2=$3=$4=$5=""; '
-            'sub(/^ +/, "", $0); '
-            'print $0 "|" x}\'',
+            "df -k | awk '/^\\/dev\\// {"
+            'x=$4; $1=$2=$3=$4=$5=""; '
+            'gsub(/^ +/, ""); '
+            'print $0"|"x}\'',
             interval=60,
             separator="|",
             sensors=[
@@ -178,7 +176,8 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "top -bn1 | awk 'NR<4 && tolower($0) ~ /cpu/ {print 100-$8}'",
+            # https://www.baeldung.com/linux/get-cpu-usage
+            "echo $((100-$(vmstat 1 2 | awk 'END {print $15}')))",
             interval=30,
             sensors=[
                 NumberSensor(
