@@ -135,7 +135,8 @@ class Manager(Collection, Synchronizer):
 
         return None
 
-    def _clear_sensors(self) -> None:
+    def reset_sensors(self) -> None:
+        """Set the value of all sensors to `None`."""
         for command in self.sensor_commands:
             command.update_sensors(self, None)
 
