@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class ManagerError(Exception):
     """Base class for terminal manager errors."""
 
@@ -31,7 +34,7 @@ class InvalidSensorError(ManagerError):
         self.key = key
 
 
-class CommandLoopError(Exception):
+class CommandLoopError(ManagerError):
     """Error to indicate that a command loop was detected."""
 
     def __init__(self, key: str) -> None:

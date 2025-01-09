@@ -1,5 +1,7 @@
 """The Windows cmd collection."""
 
+from __future__ import annotations
+
 from terminal_manager.collection import Collection
 from terminal_manager.command import ActionCommand, SensorCommand
 from terminal_manager.sensor import NumberSensor, TextSensor
