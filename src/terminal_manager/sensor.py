@@ -10,8 +10,9 @@ from .event import Event
 from .helpers import name_to_key
 
 if TYPE_CHECKING:
-    from . import Collection, Manager
+    from .collection import Collection
     from .command import Command, DynamicData
+    from .manager import Manager
 
 TRUE_STRINGS = ["true", "enabled", "on", "active", "1"]
 FALSE_STRINGS = ["false", "disabled", "off", "inactive", "0"]

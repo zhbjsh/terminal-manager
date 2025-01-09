@@ -12,7 +12,8 @@ from .helpers import name_to_key
 from .sensor import Sensor
 
 if TYPE_CHECKING:
-    from . import Collection, CommandOutput, Manager
+    from .collection import Collection
+    from .manager import CommandOutput, Manager
 
 SENSOR_DELIMITER = "&"
 VARIABLE_DELIMITER = "@"
