@@ -8,9 +8,9 @@ import inspect
 
 def locked(coro: Coroutine):
     @wraps(coro)
-    async def wrapper(obj: Synchronizer, *args, **kwargs):
-        async with obj.lock:
-            return await coro(obj, *args, **kwargs)
+    async def wrapper(synchronizer: Synchronizer, *args, **kwargs):
+        async with synchronizer.lock:
+            return await coro(synchronizer, *args, **kwargs)
 
     return wrapper
 
