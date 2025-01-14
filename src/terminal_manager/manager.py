@@ -309,7 +309,12 @@ class Manager(Collection, Synchronizer):
         if not self.allow_turn_off:
             raise PermissionError("Not allowed to turn off")
 
-        return await self.async_run_action(ActionKey.TURN_OFF)
+        output = await self.async_run_action(ActionKey.TURN_OFF)
+
+        if output.code > 0:
+            raise CommandError(f"'TURN_OFF' action returned exit code {output.code}")
+
+        return output
 
     async def async_restart(self) -> CommandOutput:
         """Restart by running the `RESTART` action.
@@ -319,4 +324,9 @@ class Manager(Collection, Synchronizer):
             CommandError
 
         """
-        return await self.async_run_action(ActionKey.RESTART)
+        output = await self.async_run_action(ActionKey.RESTART)
+
+        if output.code > 0:
+            raise CommandError(f"'RESTART' action returned exit code {output.code}")
+
+        return output
