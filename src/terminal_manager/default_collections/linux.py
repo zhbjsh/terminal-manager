@@ -25,8 +25,8 @@ linux = Collection(
     [
         # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "/sbin/ip route show default | awk '{print $5}' || "
-            "/sbin/route -n | awk '/^0.0.0.0/ {print $NF}'",
+            "x=$(/sbin/ip route show default 2>/dev/null) && awk '{print $5}' <<<$x || "
+            "x=$(/sbin/route -n 2>/dev/null) && awk '/^0.0.0.0/ {print $NF}' <<<$x",
             sensors=[
                 TextSensor(
                     SensorName.NETWORK_INTERFACE,
@@ -44,7 +44,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "cat /sys/class/net/&{network_interface}/device/power/wakeup 2>/dev/null",
+            "cat /sys/class/net/&{network_interface}/device/power/wakeup",
             sensors=[
                 BinarySensor(
                     SensorName.WAKE_ON_LAN,
@@ -89,12 +89,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            '/sbin/dmidecode -t system | awk -F": " \''
+            'x=$(/sbin/dmidecode -t system 2>/dev/null) && awk -F ": " \''
             "/Product Name:/ {a=$2} "
             "/Version:/ {b=$2} "
             "/Manufacturer:/ {c=$2} "
             "/Serial Number:/ {d=$2} "
-            'END {print a"\\n"b"\\n"c"\\n"d}\'',
+            'END {print a"\\n"b"\\n"c"\\n"d}\' <<<$x',
             sensors=[
                 TextSensor(
                     SensorName.DEVICE_NAME,
@@ -115,12 +115,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'cat /proc/cpuinfo | awk -F": " \''
+            'x=$(cat /proc/cpuinfo) && awk -F ": " \''
             "/^model name/ {a=$2} "
             "/^processor/ {b=$2+1} "
             "/^Hardware/ {c=$2} "
             "/^Model/ {d=$2} "
-            'END {print a"\\n"b"\\n"c"\\n"d}\'',
+            'END {print a"\\n"b"\\n"c"\\n"d}\' <<<$x',
             sensors=[
                 TextSensor(
                     SensorName.CPU_NAME,
@@ -141,7 +141,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "free -k | awk '/^Mem:/ {print $2}'",
+            "x=$(free -k) && awk '/^Mem:/ {print $2}' <<<$x",
             sensors=[
                 NumberSensor(
                     SensorName.TOTAL_MEMORY,
@@ -151,7 +151,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "free -k | awk '/^Mem:/ {print $4}'",
+            "x=$(free -k) && awk '/^Mem:/ {print $4}' <<<$x",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -162,10 +162,10 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "df -k | awk '/^\\/dev\\// {"
-            'x=$4; $1=$2=$3=$4=$5=""; '
+            "x=$(df -k) && awk '/^\\/dev\\// {"
+            'b=$4; $1=$2=$3=$4=$5=""; '
             'gsub(/^ +/, ""); '
-            'print $0"|"x}\'',
+            'print $0"|"b}\' <<<$x',
             interval=60,
             separator="|",
             sensors=[
@@ -178,8 +178,9 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            # https://www.baeldung.com/linux/get-cpu-usage
-            "echo $((100-$(vmstat 1 2 | awk 'END {print $15}')))",
+            "x=$(vmstat 1 2) && "
+            "y=$(awk 'END {print $15}' <<<$x) && "
+            "echo $((100-$y))",
             interval=30,
             sensors=[
                 NumberSensor(
@@ -204,7 +205,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "ps -e | awk 'END {print NR-1}'",
+            "x=$(ps -e) && awk 'END {print NR-1}' <<<$x",
             interval=60,
             sensors=[
                 NumberSensor(
