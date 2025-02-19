@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 from .collection import Collection
-from .command import Command
+from .command import Command, SensorCommand
 from .default_collections.const import ActionKey, SensorKey
 from .errors import CommandError
 from .sensor import Sensor
@@ -232,9 +232,14 @@ class Manager(Collection, Synchronizer):
 
         """
         sensors = [self.get_sensor(key) for key in keys]
-        commands = [self.get_sensor_command(key) for key in set(keys)]
+        commands = [self.get_sensor_command(key) for key in keys]
+        unique_commands: list[SensorCommand] = []
 
         for command in commands:
+            if command not in unique_commands:
+                unique_commands.append(command)
+
+        for command in unique_commands:
             try:
                 await self.async_execute_command(command)
             except CommandError:
