@@ -5,7 +5,7 @@ from dataclasses import KW_ONLY, dataclass, field, replace
 import re
 from typing import TYPE_CHECKING, Any, Self
 
-from .errors import InvalidSensorError
+from .errors import SensorError
 from .event import Event
 from .helpers import name_to_key
 
@@ -133,12 +133,12 @@ class Sensor:
         """Check configuration.
 
         Raises:
-            InvalidSensorError
+            SensorError
 
         """
         for key in self.linked_sensors:
             if not collection.sensors_by_key.get(key):
-                raise InvalidSensorError(self.key, f"'{key}' not found")
+                raise SensorError(self.key, f"'{key}' not found")
 
     def update(self, manager: Manager, data: str | list[DynamicData] | None) -> None:
         """Update and notify `on_update` subscribers."""
@@ -318,10 +318,10 @@ class VersionSensor(Sensor):
         sensor = collection.sensors_by_key[key]
 
         if not isinstance(sensor, VersionSensor):
-            raise InvalidSensorError(self.key, f"'{key}' is not a version sensor")
+            raise SensorError(self.key, f"'{key}' is not a version sensor")
 
         if sensor.latest:
-            raise InvalidSensorError(self.key, f"'{key}' has 'latest' attribute")
+            raise SensorError(self.key, f"'{key}' has 'latest' attribute")
 
         if sensor.command_set:
-            raise InvalidSensorError(self.key, f"'{key}' has 'command_set' attribute")
+            raise SensorError(self.key, f"'{key}' has 'command_set' attribute")

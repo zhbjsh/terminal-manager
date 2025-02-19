@@ -136,7 +136,7 @@ class Collection:
         """Check commands.
 
         Raises:
-            InvalidSensorError
+            SensorError
             CommandLoopError
 
         """

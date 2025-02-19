@@ -6,9 +6,9 @@ from .default_collections.const import ActionKey, SensorKey
 from .errors import (
     CommandError,
     CommandLoopError,
-    InvalidSensorError,
     ManagerError,
     NameKeyError,
+    SensorError,
 )
 from .event import Event
 from .manager import (
@@ -30,9 +30,9 @@ __all__ = [
     "SensorKey",
     "CommandError",
     "CommandLoopError",
-    "InvalidSensorError",
     "ManagerError",
     "NameKeyError",
+    "SensorError",
     "Event",
     "DEFAULT_ALLOW_TURN_OFF",
     "DEFAULT_COMMAND_TIMEOUT",

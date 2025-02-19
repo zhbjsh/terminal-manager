@@ -7,7 +7,7 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, CommandLoopError, InvalidSensorError
+from .errors import CommandError, CommandLoopError, SensorError
 from .helpers import name_to_key
 from .sensor import Sensor
 
@@ -114,7 +114,7 @@ class Command:
         """Check configuration.
 
         Raises:
-            InvalidSensorError
+            SensorError
             CommandLoopError
 
         """
@@ -153,7 +153,7 @@ class Command:
 
         try:
             self.check(manager)
-        except (CommandLoopError, InvalidSensorError) as exc:
+        except (CommandLoopError, SensorError) as exc:
             raise CommandError("Command check failed", exc) from exc
 
         try:
@@ -246,7 +246,7 @@ class SensorCommand(Command):
         """Check command configuration.
 
         Raises:
-            InvalidSensorError
+            SensorError
             CommandLoopError
 
         """
@@ -256,7 +256,7 @@ class SensorCommand(Command):
             if sensor.dynamic:
                 dynamic = True
             if dynamic and not sensor.dynamic:
-                raise InvalidSensorError(sensor.key, "Sensor must be dynamic")
+                raise SensorError(sensor.key, "Sensor must be dynamic")
             sensor.check(collection)
 
         super().check(collection)

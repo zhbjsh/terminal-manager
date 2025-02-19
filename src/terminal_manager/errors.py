@@ -25,8 +25,8 @@ class NameKeyError(ManagerError):
         super().__init__("Name and key not defined")
 
 
-class InvalidSensorError(ManagerError):
-    """Error to indicate that a sensor is invalid."""
+class SensorError(ManagerError):
+    """Error to indicate a sensor configuration problem."""
 
     def __init__(self, key: str, details: str) -> None:
         super().__init__(f"Sensor '{key}' is invalid")
