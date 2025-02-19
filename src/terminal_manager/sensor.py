@@ -95,22 +95,18 @@ class Sensor:
     def _validate(self, value: Any) -> None: ...
 
     def _update_value(self, manager: Manager, data: str | None) -> None:
-        if data is None:
-            self.value = None
-            manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
-            return
-
         try:
-            value = self._render_value(data)
-        except Exception as exc:  # noqa: BLE001
+            self.value = self._render_value(data)
+        except (TypeError, ValueError) as exc:
             self.value = None
             manager.logger.debug(
                 "%s: %s => %s (%s)", manager.name, self.key, self.value, exc
             )
-            return
+        else:
+            manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
 
-        self.value = self.last_known_value = value
-        manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
+        if self.value is not None:
+            self.last_known_value = self.value
 
     def _update_child_sensors(
         self,
