@@ -197,7 +197,8 @@ class ActionCommand(Command):
     attributes: dict = field(default_factory=dict)
 
     def __post_init__(self):
-        self.key = self.key or name_to_key(self.name)
+        self.name = self.name.strip() if self.name else None
+        self.key = self.key.strip() if self.key else name_to_key(self.name)
 
 
 @dataclass

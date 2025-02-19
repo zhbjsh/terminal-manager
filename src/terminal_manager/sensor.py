@@ -31,7 +31,8 @@ class Sensor:
 
     def __post_init__(self):
         self.id = None
-        self.key = self.key or name_to_key(self.name)
+        self.name = self.name.strip() if self.name else None
+        self.key = self.key.strip() if self.key else name_to_key(self.name)
         self.value: Any | None = None
         self.last_known_value: Any | None = None
         self.child_sensors: list[Sensor] = []
