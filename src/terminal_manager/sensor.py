@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import KW_ONLY, dataclass, field, replace
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from .errors import InvalidSensorError
 from .event import Event
@@ -46,7 +46,7 @@ class Sensor:
         return self.command_set is not None
 
     @property
-    def child_sensors_by_key(self) -> dict[str, Sensor]:
+    def child_sensors_by_key(self) -> dict[str, Self]:
         return {child.key: child for child in self.child_sensors}
 
     @property
@@ -56,7 +56,7 @@ class Sensor:
     def _get_control_command(self, _: Any) -> Command | None:
         return self.command_set
 
-    def _make_child(self, dynamic_data: DynamicData) -> Sensor:
+    def _make_child(self, dynamic_data: DynamicData) -> Self:
         child = replace(
             self,
             name=dynamic_data.name,
@@ -301,8 +301,8 @@ class VersionSensor(Sensor):
         if not isinstance(value, str):
             raise TypeError(f"{value} is {type(value)} and not {str}")
 
-    def _make_child(self, dynamic_data: DynamicData) -> Sensor:
-        child: VersionSensor = super()._make_child(dynamic_data)
+    def _make_child(self, dynamic_data: DynamicData) -> Self:
+        child = super()._make_child(dynamic_data)
 
         if key := self.latest:
             child.latest = f"{key}_{name_to_key(child.id)}"
