@@ -74,11 +74,20 @@ class Sensor:
         self.child_sensors.remove(child)
         self.on_child_remove.notify(self, child)
 
-    def _render(self, data: str) -> str:
-        if self.renderer:
-            data = self.renderer(data)
+    def _render_value(self, data: str | None) -> str:
+        if data is None:
+            return None
 
-        return data.strip()
+        if self.renderer:
+            try:
+                data = self.renderer(data)
+            except Exception as exc:
+                raise ValueError("Failed to render value") from exc
+
+        value_string = data.strip()
+        value = self._convert(value_string)
+        self._validate(value)
+        return value
 
     def _convert(self, value_string: str) -> Any:
         return value_string
@@ -92,9 +101,7 @@ class Sensor:
             return
 
         try:
-            value_string = self._render(data)
-            value = self._convert(value_string)
-            self._validate(value)
+            value = self._render_value(data)
         except Exception as exc:  # noqa: BLE001
             self.value = None
             manager.logger.debug(
