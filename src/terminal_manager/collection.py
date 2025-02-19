@@ -133,6 +133,12 @@ class Collection:
             self.sensor_commands.remove(command)
 
     def check(self) -> None:
-        """Check commands."""
+        """Check commands.
+
+        Raises:
+            InvalidSensorError
+            CommandLoopError
+
+        """
         for command in self.commands:
             command.check(self)
