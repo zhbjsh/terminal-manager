@@ -30,7 +30,7 @@ class Sensor:
     attributes: dict = field(default_factory=dict)
 
     def __post_init__(self):
-        self.id = None
+        self.id: str | None = None
         self.name = self.name.strip() if self.name else None
         self.key = self.key.strip() if self.key else name_to_key(self.name)
         self.value: Any | None = None
@@ -39,7 +39,7 @@ class Sensor:
         self.on_update = Event()
         self.on_child_add = Event()
         self.on_child_remove = Event()
-        self._linked_sensors = set()
+        self._linked_sensors: set[str] = set()
 
     @property
     def controllable(self) -> bool:
@@ -177,7 +177,7 @@ class TextSensor(Sensor):
     minimum: int | None = None
     maximum: int | None = None
     pattern: str | None = None
-    options: list[Any] | None = None
+    options: list[str] | None = None
 
     def _convert(self, value_string: str) -> str:
         if value_string == "":
@@ -244,7 +244,7 @@ class BinarySensor(Sensor):
 
         return super().controllable
 
-    def _get_control_command(self, value: Any) -> Command | None:
+    def _get_control_command(self, value: bool) -> Command | None:
         if self.command_on and value is True:
             return self.command_on
 
