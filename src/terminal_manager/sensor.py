@@ -164,6 +164,12 @@ class Sensor:
             ExecutionError
 
         """
+        if callable(value):
+            try:
+                value = value(self.value)
+            except Exception:
+                raise ValueError("Failed to generate value")
+
         self._validate(value)
         command = self._get_control_command(value)
 
