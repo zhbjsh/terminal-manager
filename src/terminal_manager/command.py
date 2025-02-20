@@ -129,7 +129,7 @@ class Command:
                 if key not in commands_by_key:
                     continue
                 if (sub_command := commands_by_key[key]) in commands:
-                    raise CommandLoopError(key)
+                    raise CommandLoopError(f"Key: {key}")
                 if sub_command not in sub_commands:
                     sub_commands.append(sub_command)
                     detect_loop(sub_command)
@@ -154,17 +154,17 @@ class Command:
         try:
             self.check(manager)
         except (CommandLoopError, SensorError) as exc:
-            raise CommandError("Command check failed", exc) from exc
+            raise CommandError(f"Command check failed: {exc}") from exc
 
         try:
             string = VariableTemplate(string).substitute(variables)
         except Exception as exc:
-            raise CommandError("Failed to substitute variable", exc) from exc
+            raise CommandError(f"Failed to substitute variable: {exc}") from exc
 
         try:
             sensors = await manager.async_poll_sensors(self.required_sensors)
         except Exception as exc:
-            raise CommandError("Failed to poll required sensors", exc) from exc
+            raise CommandError(f"Failed to poll required sensors: {exc}") from exc
 
         for sensor in sensors:
             if sensor.value is not None:
@@ -175,12 +175,12 @@ class Command:
         try:
             string = SensorTemplate(string).substitute(sensor_values_by_key)
         except Exception as exc:
-            raise CommandError("Failed to substitute sensor", exc) from exc
+            raise CommandError(f"Failed to substitute sensor {exc}") from exc
 
         try:
             string = self._render(string)
         except Exception as exc:
-            raise CommandError("Failed to render string", exc) from exc
+            raise CommandError(f"Failed to render string {exc}") from exc
 
         output = await manager.async_execute_command_string(string, self.timeout)
 

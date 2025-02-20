@@ -4,18 +4,20 @@ from __future__ import annotations
 class ManagerError(Exception):
     """Base class for terminal manager errors."""
 
-    def __init__(self, message: str, exc: Exception | None = None):
+    def __init__(self, message: str, details: str | None = None):
         super().__init__()
-        self.exc = exc
         self.message = message
-        self.details = str(exc) if exc else None
+        self.details = details
 
     def __str__(self):
         return f"{self.message} ({self.details})" if self.details else self.message
 
 
 class CommandError(ManagerError):
-    """Error to indicate that the command execution failed."""
+    """Error to indicate a command configuration problem."""
+
+    def __init__(self, details: str) -> None:
+        super().__init__("Command error", details)
 
 
 class NameKeyError(ManagerError):
@@ -29,15 +31,12 @@ class SensorError(ManagerError):
     """Error to indicate a sensor configuration problem."""
 
     def __init__(self, key: str, details: str) -> None:
-        super().__init__(f"Sensor '{key}' is invalid")
-        self.details = details
+        super().__init__(f"Sensor error: '{key}'", details)
         self.key = key
 
 
 class CommandLoopError(ManagerError):
     """Error to indicate that a command loop was detected."""
 
-    def __init__(self, key: str) -> None:
-        super().__init__("Command loop detected")
-        self.details = f"Key: '{key}'"
-        self.key = key
+    def __init__(self, details: str) -> None:
+        super().__init__("Command loop detected", details)
