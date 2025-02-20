@@ -33,10 +33,3 @@ class SensorError(ManagerError):
     def __init__(self, key: str, details: str) -> None:
         super().__init__(f"Sensor error: '{key}'", details)
         self.key = key
-
-
-class CommandLoopError(ManagerError):
-    """Error to indicate that a command loop was detected."""
-
-    def __init__(self, details: str) -> None:
-        super().__init__("Command loop detected", details)

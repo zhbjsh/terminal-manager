@@ -7,7 +7,7 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, CommandLoopError, SensorError
+from .errors import CommandError, SensorError
 from .helpers import name_to_key
 from .sensor import Sensor
 
@@ -115,7 +115,7 @@ class Command:
 
         Raises:
             SensorError
-            CommandLoopError
+            CommandError
 
         """
         commands_by_key = collection.sensor_commands_by_sensor_key
@@ -129,7 +129,7 @@ class Command:
                 if key not in commands_by_key:
                     continue
                 if (sub_command := commands_by_key[key]) in commands:
-                    raise CommandLoopError(f"Key: {key}")
+                    raise CommandError(f"Loop detected: '{key}'")
                 if sub_command not in sub_commands:
                     sub_commands.append(sub_command)
                     detect_loop(sub_command)
@@ -153,8 +153,8 @@ class Command:
 
         try:
             self.check(manager)
-        except (CommandLoopError, SensorError) as exc:
-            raise CommandError(f"Command check failed: {exc}") from exc
+        except SensorError as exc:
+            raise CommandError(str(exc)) from exc
 
         try:
             string = VariableTemplate(string).substitute(variables)
@@ -247,7 +247,7 @@ class SensorCommand(Command):
 
         Raises:
             SensorError
-            CommandLoopError
+            CommandError
 
         """
         dynamic = False

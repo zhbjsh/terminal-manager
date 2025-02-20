@@ -5,7 +5,6 @@ from .command import PLACEHOLDER_KEY, ActionCommand, Command, SensorCommand
 from .default_collections.const import ActionKey, SensorKey
 from .errors import (
     CommandError,
-    CommandLoopError,
     ManagerError,
     NameKeyError,
     SensorError,
@@ -29,7 +28,6 @@ __all__ = [
     "ActionKey",
     "SensorKey",
     "CommandError",
-    "CommandLoopError",
     "ManagerError",
     "NameKeyError",
     "SensorError",

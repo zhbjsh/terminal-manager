@@ -137,7 +137,7 @@ class Collection:
 
         Raises:
             SensorError
-            CommandLoopError
+            CommandError
 
         """
         for command in self.commands:
