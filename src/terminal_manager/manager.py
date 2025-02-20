@@ -126,10 +126,10 @@ class Manager(Collection, Synchronizer):
 
         return None
 
-    def reset_sensors(self) -> None:
-        """Set the value of all sensors to `None`."""
-        for command in self.sensor_commands:
-            command.update_sensors(self, None)
+    def reset_commands(self) -> None:
+        """Reset commands and clear sensor values."""
+        for command in *self.action_commands, *self.sensor_commands:
+            command.reset(self)
 
     async def async_close(self) -> None:
         """Close."""

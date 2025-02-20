@@ -187,6 +187,11 @@ class Command:
 
         detect_loop(self)
 
+    def reset(self, manager: Manager) -> None:
+        """Reset."""
+        self.error = None
+        self.output = None
+
     async def async_execute(
         self,
         manager: Manager,
@@ -301,13 +306,23 @@ class SensorCommand(Command):
             for sensor in self.sensors
         ]
 
+    def clear_sensor_values(self, manager: Manager) -> None:
+        """Set sensor values to `None`."""
+        for sensor in self.sensors:
+            sensor.update(manager, None)
+
+    def reset(self, manager: Manager) -> None:
+        """Reset and clear sensor values."""
+        super().reset(manager)
+        self.clear_sensor_values(manager)
+
     def update_sensors(self, manager: Manager) -> None:
         """Update the sensors."""
-        if (output := self.output) and output.code == 0:
-            data = output.stdout
-        else:
-            data = []
+        if not (output := self.output) or output.code > 0:
+            self.clear_sensor_values(manager)
+            return
 
+        data = output.stdout
         dyn_start = None
 
         for i, sensor in enumerate(self.sensors):
