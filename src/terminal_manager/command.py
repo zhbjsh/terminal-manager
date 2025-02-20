@@ -112,7 +112,7 @@ class Command:
         self,
         manager: Manager,
         variables: dict | None = None,
-    ) -> CommandOutput:
+    ) -> str:
         """Render string.
 
         Raises:
