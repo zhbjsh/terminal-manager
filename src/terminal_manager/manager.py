@@ -9,7 +9,7 @@ from typing import Any
 from .collection import Collection
 from .command import Command, SensorCommand
 from .default_collections.const import ActionKey, SensorKey
-from .errors import CommandError
+from .errors import CommandError, ExecutionError
 from .sensor import Sensor
 from .synchronizer import Synchronizer
 
@@ -143,7 +143,7 @@ class Manager(Collection, Synchronizer):
         for command in self.sensor_commands:
             if not (force or command.should_update):
                 return
-            with suppress(CommandError):
+            with suppress(CommandError, ExecutionError):
                 await self.async_execute_command(command)
 
     async def async_execute_command_string(
@@ -154,10 +154,10 @@ class Manager(Collection, Synchronizer):
         """Execute a command string.
 
         Raises:
-            CommandError
+            ExecutionError
 
         """
-        raise CommandError("Not implemented")
+        raise ExecutionError("Not implemented")
 
     async def async_execute_command(
         self,
@@ -168,11 +168,12 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             CommandError
+            ExecutionError
 
         """
         try:
             output = await command.async_execute(self, variables)
-        except CommandError as exc:
+        except (CommandError, ExecutionError) as exc:
             self.logger.debug("%s: %s => %s", self.name, command.string, exc)
             raise
 
@@ -197,6 +198,7 @@ class Manager(Collection, Synchronizer):
         Raises:
             KeyError
             CommandError
+            ExecutionError
 
         """
         command = self.get_action_command(key)
@@ -213,6 +215,7 @@ class Manager(Collection, Synchronizer):
         Raises:
             KeyError
             CommandError (only with `raise_errors=True`)
+            ExecutionError (only with `raise_errors=True`)
 
         """
         sensors = await self.async_poll_sensors([key], raise_errors=raise_errors)
@@ -229,6 +232,7 @@ class Manager(Collection, Synchronizer):
         Raises:
             KeyError
             CommandError (only with `raise_errors=True`)
+            ExecutionError (only with `raise_errors=True`)
 
         """
         sensors = [self.get_sensor(key) for key in keys]
@@ -242,7 +246,7 @@ class Manager(Collection, Synchronizer):
         for command in unique_commands:
             try:
                 await self.async_execute_command(command)
-            except CommandError:
+            except (CommandError, ExecutionError):
                 if raise_errors:
                     raise
 
@@ -262,6 +266,7 @@ class Manager(Collection, Synchronizer):
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
+            ExecutionError (only with `raise_errors=True`)
 
         """
         sensors = await self.async_set_sensor_values(
@@ -283,6 +288,7 @@ class Manager(Collection, Synchronizer):
             TypeError (only with `raise_errors=True`)
             ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
+            ExecutionError (only with `raise_errors=True`)
 
         """
         sensors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
@@ -296,7 +302,7 @@ class Manager(Collection, Synchronizer):
                 value = values[i]
             try:
                 await sensor.async_set(self, value)
-            except (TypeError, ValueError, CommandError):
+            except (TypeError, ValueError, CommandError, ExecutionError):
                 if raise_errors:
                     raise
 
@@ -309,6 +315,7 @@ class Manager(Collection, Synchronizer):
             PermissionError
             KeyError
             CommandError
+            ExecutionError
 
         """
         if not self.allow_turn_off:
@@ -317,7 +324,7 @@ class Manager(Collection, Synchronizer):
         output = await self.async_run_action(ActionKey.TURN_OFF)
 
         if output.code > 0:
-            raise CommandError(f"'TURN_OFF' action returned exit code {output.code}")
+            raise ExecutionError(f"'TURN_OFF' action returned exit code {output.code}")
 
         return output
 
@@ -327,11 +334,12 @@ class Manager(Collection, Synchronizer):
         Raises:
             KeyError
             CommandError
+            ExecutionError
 
         """
         output = await self.async_run_action(ActionKey.RESTART)
 
         if output.code > 0:
-            raise CommandError(f"'RESTART' action returned exit code {output.code}")
+            raise ExecutionError(f"'RESTART' action returned exit code {output.code}")
 
         return output

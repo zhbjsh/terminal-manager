@@ -20,6 +20,13 @@ class CommandError(ManagerError):
         super().__init__("Command error", details)
 
 
+class ExecutionError(ManagerError):
+    """Error to indicate that the command execution failed."""
+
+    def __init__(self, details: str) -> None:
+        super().__init__("Execution error", details)
+
+
 class NameKeyError(ManagerError):
     """Error to indicate that name and key are not defined."""
 

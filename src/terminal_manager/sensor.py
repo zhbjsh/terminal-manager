@@ -161,6 +161,7 @@ class Sensor:
             TypeError
             ValueError
             CommandError
+            ExecutionError
 
         """
         self._validate(value)

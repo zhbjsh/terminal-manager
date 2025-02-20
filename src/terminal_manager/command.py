@@ -7,7 +7,7 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, SensorError
+from .errors import CommandError, ExecutionError, SensorError
 from .helpers import name_to_key
 from .sensor import Sensor
 
@@ -145,6 +145,7 @@ class Command:
 
         Raises:
             CommandError
+            ExecutionError
 
         """
         variables = variables or {}
@@ -162,9 +163,11 @@ class Command:
             raise CommandError(f"Failed to substitute variable: {exc}") from exc
 
         try:
-            sensors = await manager.async_poll_sensors(self.required_sensors)
-        except Exception as exc:
-            raise CommandError(f"Failed to poll required sensors: {exc}") from exc
+            sensors = await manager.async_poll_sensors(
+                self.required_sensors, raise_errors=True,
+            )
+        except KeyError as exc:
+            raise CommandError(f"Failed to poll required sensor: {exc}") from exc
 
         for sensor in sensors:
             if sensor.value is not None:
@@ -184,7 +187,10 @@ class Command:
 
         output = await manager.async_execute_command_string(string, self.timeout)
 
-        await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
+        try:
+            await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
+        except KeyError as exc:
+            raise CommandError(f"Failed to poll linked sensor: {exc}") from exc
 
         return output
 
@@ -312,7 +318,7 @@ class SensorCommand(Command):
     ) -> CommandOutput:
         try:
             output = await super().async_execute(manager, variables)
-        except CommandError:
+        except (CommandError, ExecutionError):
             self.update_sensors(manager, None)
             raise
 
