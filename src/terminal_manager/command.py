@@ -84,6 +84,10 @@ class Command:
     renderer: Callable[[str], str] | None = None
     _linked_sensors: set[str] = field(default_factory=set, init=False, repr=False)
 
+    def __post_init__(self):
+        self.error: CommandError | ExecutionError | None = None
+        self.output: CommandOutput | None = None
+
     @property
     def required_variables(self) -> set[str]:
         """Variables required to render the command string."""
@@ -104,11 +108,58 @@ class Command:
         """Set of required and linked sensors."""
         return {*self.required_sensors, *self.linked_sensors}
 
-    def _render(self, string: str) -> str:
-        if self.renderer:
-            string = self.renderer(string)
+    async def async_render_string(
+        self,
+        manager: Manager,
+        variables: dict | None = None,
+    ) -> CommandOutput:
+        """Render string.
 
-        return string
+        Raises:
+            CommandError
+            ExecutionError
+
+        """
+        variables = variables or {}
+        sensor_values_by_key = {}
+        string = self.string
+
+        try:
+            self.check(manager)
+        except SensorError as exc:
+            raise CommandError(str(exc)) from exc
+
+        try:
+            string = VariableTemplate(string).substitute(variables)
+        except Exception as exc:
+            raise CommandError(f"Failed to substitute variable: {exc}") from exc
+
+        try:
+            sensors = await manager.async_poll_sensors(
+                self.required_sensors,
+                raise_errors=True,
+            )
+        except KeyError as exc:
+            raise CommandError(f"Failed to poll required sensor: {exc}") from exc
+
+        for sensor in sensors:
+            if sensor.value is not None:
+                sensor_values_by_key[sensor.key] = sensor.value
+            else:
+                raise CommandError(f"Value of required sensor {sensor.key} is None")
+
+        try:
+            string = SensorTemplate(string).substitute(sensor_values_by_key)
+        except Exception as exc:
+            raise CommandError(f"Failed to substitute sensor {exc}") from exc
+
+        if not self.renderer:
+            return string
+
+        try:
+            return self.renderer(string)
+        except Exception as exc:
+            raise CommandError(f"Failed to render string {exc}") from exc
 
     def check(self, collection: Collection) -> None:
         """Check configuration.
@@ -148,44 +199,25 @@ class Command:
             ExecutionError
 
         """
-        variables = variables or {}
-        sensor_values_by_key = {}
-        string = self.string
-
         try:
-            self.check(manager)
-        except SensorError as exc:
-            raise CommandError(str(exc)) from exc
+            string = await self.async_render_string(manager, variables)
+            output = await manager.async_execute_command_string(string, self.timeout)
+        except (CommandError, ExecutionError) as exc:
+            self.error = exc
+            self.output = None
+            manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
+            raise
 
-        try:
-            string = VariableTemplate(string).substitute(variables)
-        except Exception as exc:
-            raise CommandError(f"Failed to substitute variable: {exc}") from exc
-
-        try:
-            sensors = await manager.async_poll_sensors(
-                self.required_sensors, raise_errors=True,
-            )
-        except KeyError as exc:
-            raise CommandError(f"Failed to poll required sensor: {exc}") from exc
-
-        for sensor in sensors:
-            if sensor.value is not None:
-                sensor_values_by_key[sensor.key] = sensor.value
-            else:
-                raise CommandError(f"Value of required sensor {sensor.key} is None")
-
-        try:
-            string = SensorTemplate(string).substitute(sensor_values_by_key)
-        except Exception as exc:
-            raise CommandError(f"Failed to substitute sensor {exc}") from exc
-
-        try:
-            string = self._render(string)
-        except Exception as exc:
-            raise CommandError(f"Failed to render string {exc}") from exc
-
-        output = await manager.async_execute_command_string(string, self.timeout)
+        self.error = None
+        self.output = output
+        manager.logger.debug(
+            "%s: %s => %s, %s, %s",
+            manager.name,
+            output.command_string,
+            output.stdout,
+            output.stderr,
+            output.code,
+        )
 
         try:
             await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
@@ -203,6 +235,7 @@ class ActionCommand(Command):
     attributes: dict = field(default_factory=dict)
 
     def __post_init__(self):
+        super().__post_init__()
         self.name = self.name.strip() if self.name else None
         self.key = self.key.strip() if self.key else name_to_key(self.name)
 
@@ -213,9 +246,6 @@ class SensorCommand(Command):
     interval: int | None = None
     separator: str | None = None
     sensors: list[Sensor] = field(default_factory=list)
-
-    def __post_init__(self):
-        self.last_update: float | None = None
 
     @property
     def linked_sensors(self) -> set[str]:
@@ -231,13 +261,10 @@ class SensorCommand(Command):
         if not self.interval:
             return False
 
-        if not self.last_update:
+        if not self.output:
             return True
 
-        if time() - self.last_update < self.interval:
-            return False
-
-        return True
+        return time() - self.output.timestamp > self.interval
 
     @property
     def sensors_by_key(self) -> dict[str, Sensor]:
@@ -274,10 +301,9 @@ class SensorCommand(Command):
             for sensor in self.sensors
         ]
 
-    def update_sensors(self, manager: Manager, output: CommandOutput | None) -> None:
+    def update_sensors(self, manager: Manager) -> None:
         """Update the sensors."""
-        if output and output.code == 0:
-            self.last_update = output.timestamp
+        if (output := self.output) and output.code == 0:
             data = output.stdout
         else:
             data = []
@@ -317,11 +343,6 @@ class SensorCommand(Command):
         variables: dict | None = None,
     ) -> CommandOutput:
         try:
-            output = await super().async_execute(manager, variables)
-        except (CommandError, ExecutionError):
-            self.update_sensors(manager, None)
-            raise
-
-        self.update_sensors(manager, output)
-
-        return output
+            return await super().async_execute(manager, variables)
+        finally:
+            self.update_sensors(manager)

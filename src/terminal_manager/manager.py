@@ -171,22 +171,7 @@ class Manager(Collection, Synchronizer):
             ExecutionError
 
         """
-        try:
-            output = await command.async_execute(self, variables)
-        except (CommandError, ExecutionError) as exc:
-            self.logger.debug("%s: %s => %s", self.name, command.string, exc)
-            raise
-
-        self.logger.debug(
-            "%s: %s => %s, %s, %s",
-            self.name,
-            output.command_string,
-            output.stdout,
-            output.stderr,
-            output.code,
-        )
-
-        return output
+        return await command.async_execute(self, variables)
 
     async def async_run_action(
         self,
