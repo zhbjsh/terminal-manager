@@ -14,6 +14,7 @@ from .sensor import Sensor
 from .synchronizer import Synchronizer
 
 _LOGGER = logging.getLogger(__name__)
+_TEST_COMMAND = Command("echo ''")
 
 DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
@@ -134,15 +135,31 @@ class Manager(Collection, Synchronizer):
     async def async_close(self) -> None:
         """Close."""
 
-    async def async_update_sensor_commands(self, force: bool = False) -> None:
+    async def async_update_sensor_commands(
+        self,
+        *,
+        force: bool = False,
+        once: bool = False,
+        test: bool = False,
+    ) -> None:
         """Update the sensor commands.
 
-        Execute sensor commands that passed their `interval` or
-        all sensor commands with `force=True`.
+        Commands that raised a `CommandError` count as updated.
+        If `force=True`, update all commands.
+        If `once=True`, update only commands that have never been updated before.
+        If `test=True`, execute a test command if there are no commands to update.
+
         """
-        for command in self.sensor_commands:
-            if not (force or command.should_update):
-                return
+        commands = [
+            command
+            for command in self.sensor_commands
+            if force or (command.should_update and not (once and command.output))
+        ]
+
+        if test:
+            commands = commands or [_TEST_COMMAND]
+
+        for command in commands:
             with suppress(CommandError, ExecutionError):
                 await self.async_execute_command(command)
 
