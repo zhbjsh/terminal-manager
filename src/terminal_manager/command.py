@@ -263,6 +263,9 @@ class SensorCommand(Command):
 
     @property
     def should_update(self) -> bool:
+        if not self.output:
+            return not isinstance(self.error, CommandError)
+
         if not self.interval:
             return False
 
