@@ -141,13 +141,18 @@ class Manager(Collection, Synchronizer):
         force: bool = False,
         once: bool = False,
         test: bool = False,
+        raise_errors: bool = False,
     ) -> None:
-        """Update the sensor commands.
+        """Update the sensor commands, raise errors when done.
 
         Commands that raised a `CommandError` count as updated.
         If `force=True`, update all commands.
         If `once=True`, update only commands that have never been updated before.
         If `test=True`, execute a test command if there are no commands to update.
+
+        Raises:
+            `CommandError` (only with `raise_errors=True`)
+            `ExecuteError` (only with `raise_errors=True`)
 
         """
         commands = [
@@ -159,9 +164,7 @@ class Manager(Collection, Synchronizer):
         if test:
             commands = commands or [_TEST_COMMAND]
 
-        for command in commands:
-            with suppress(CommandError, ExecutionError):
-                await self.async_execute_command(command)
+        await self.async_execute_commands(commands, raise_errors=raise_errors)
 
     async def async_execute_command_string(
         self,
@@ -189,6 +192,34 @@ class Manager(Collection, Synchronizer):
 
         """
         return await command.async_execute(self, variables)
+
+    async def async_execute_commands(
+        self,
+        commands: Sequence[Command],
+        *,
+        raise_errors: bool = False,
+    ) -> tuple[CommandError | ExecutionError | None]:
+        """Execute multiple commands, raise errors when done.
+
+        Raises:
+            `CommandError` (only with `raise_errors=True`)
+            `ExecuteError` (only with `raise_errors=True`)
+
+        Returns:
+            List of errors in the same order as `commands`.
+
+        """
+        for command in commands:
+            with suppress(CommandError, ExecutionError):
+                await self.async_execute_command(command)
+
+        errors = tuple(command.error for command in commands)
+        first_error = next((exc for exc in errors if exc), None)
+
+        if raise_errors and first_error:
+            raise first_error
+
+        return errors
 
     async def async_run_action(
         self,
@@ -229,7 +260,7 @@ class Manager(Collection, Synchronizer):
         *,
         raise_errors: bool = False,
     ) -> list[Sensor]:
-        """Poll multiple sensors.
+        """Poll multiple sensors, raise errors when done.
 
         Raises:
             KeyError
@@ -245,12 +276,10 @@ class Manager(Collection, Synchronizer):
             if command not in unique_commands:
                 unique_commands.append(command)
 
-        for command in unique_commands:
-            try:
-                await self.async_execute_command(command)
-            except (CommandError, ExecutionError):
-                if raise_errors:
-                    raise
+        await self.async_execute_commands(
+            unique_commands,
+            raise_errors=raise_errors,
+        )
 
         return sensors
 
