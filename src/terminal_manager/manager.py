@@ -206,7 +206,7 @@ class Manager(Collection, Synchronizer):
             `ExecuteError` (only with `raise_errors=True`)
 
         Returns:
-            List of errors in the same order as `commands`.
+            Tuple of errors in the same order as `commands`.
 
         """
         for command in commands:
@@ -251,7 +251,9 @@ class Manager(Collection, Synchronizer):
             ExecutionError (only with `raise_errors=True`)
 
         """
-        sensors = await self.async_poll_sensors([key], raise_errors=raise_errors)
+        sensors, errors = await self.async_poll_sensors(
+            [key], raise_errors=raise_errors
+        )
         return sensors[0]
 
     async def async_poll_sensors(
@@ -259,7 +261,7 @@ class Manager(Collection, Synchronizer):
         keys: Sequence[str],
         *,
         raise_errors: bool = False,
-    ) -> list[Sensor]:
+    ) -> tuple[tuple[Sensor], tuple[CommandError | ExecutionError | None]]:
         """Poll multiple sensors, raise errors when done.
 
         Raises:
@@ -267,21 +269,24 @@ class Manager(Collection, Synchronizer):
             CommandError (only with `raise_errors=True`)
             ExecutionError (only with `raise_errors=True`)
 
+        Returns:
+            Tuples of sensors and errors in the same order as `keys`.
+
         """
-        sensors = [self.get_sensor(key) for key in keys]
-        commands = [self.get_sensor_command(key) for key in keys]
+        sensors = tuple(self.get_sensor(key) for key in keys)
+        commands = tuple(self.get_sensor_command(key) for key in keys)
         unique_commands: list[SensorCommand] = []
 
         for command in commands:
             if command not in unique_commands:
                 unique_commands.append(command)
 
-        await self.async_execute_commands(
+        errors = await self.async_execute_commands(
             unique_commands,
             raise_errors=raise_errors,
         )
 
-        return sensors
+        return sensors, errors
 
     async def async_set_sensor_value(
         self,
@@ -322,7 +327,7 @@ class Manager(Collection, Synchronizer):
             ExecutionError (only with `raise_errors=True`)
 
         """
-        sensors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
+        sensors, errors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
 
         for i, sensor in enumerate(sensors):
             if sensor.value is None:
@@ -333,7 +338,8 @@ class Manager(Collection, Synchronizer):
                 if raise_errors:
                     raise
 
-        return await self.async_poll_sensors(keys, raise_errors=raise_errors)
+        await self.async_poll_sensors(keys, raise_errors=raise_errors)
+        return sensors
 
     async def async_turn_off(self) -> CommandOutput:
         """Turn off by running the `TURN_OFF` action.

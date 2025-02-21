@@ -135,7 +135,7 @@ class Command:
             raise CommandError(f"Failed to substitute variable: {exc}") from exc
 
         try:
-            sensors = await manager.async_poll_sensors(
+            sensors, errors = await manager.async_poll_sensors(
                 self.required_sensors,
                 raise_errors=True,
             )
