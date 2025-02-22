@@ -138,7 +138,7 @@ class Manager(Collection, Synchronizer):
     async def async_close(self) -> None:
         """Close."""
 
-    async def async_update_sensor_commands(
+    async def async_update(
         self,
         *,
         force: bool = False,
@@ -146,7 +146,7 @@ class Manager(Collection, Synchronizer):
         test: bool = False,
         raise_errors: bool = False,
     ) -> None:
-        """Update the sensor commands, raise errors when done.
+        """Update sensor commands, raise errors when done.
 
         Commands that raised a `CommandError` count as updated.
         If `force=True`, update all commands.
