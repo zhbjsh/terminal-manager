@@ -9,7 +9,7 @@ from typing import Any
 from .collection import Collection
 from .command import Command, SensorCommand
 from .default_collections.const import ActionKey, SensorKey
-from .errors import CommandError, ExecutionError
+from .errors import CommandError, ExecutionError, SensorError
 from .sensor import Sensor
 from .synchronizer import Synchronizer
 
@@ -19,6 +19,9 @@ _TEST_COMMAND = Command("echo ''")
 DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
+
+CommandExecuteError = CommandError | ExecutionError
+SensorSetError = CommandError | ExecutionError | SensorError | TypeError | ValueError
 
 
 @dataclass(frozen=True)
@@ -198,7 +201,7 @@ class Manager(Collection, Synchronizer):
         commands: Sequence[Command],
         *,
         raise_errors: bool = False,
-    ) -> tuple[CommandError | ExecutionError | None]:
+    ) -> tuple[CommandExecuteError | None]:
         """Execute multiple commands, raise errors when done.
 
         Raises:
@@ -261,7 +264,7 @@ class Manager(Collection, Synchronizer):
         keys: Sequence[str],
         *,
         raise_errors: bool = False,
-    ) -> tuple[tuple[Sensor], tuple[CommandError | ExecutionError | None]]:
+    ) -> tuple[tuple[Sensor], tuple[CommandExecuteError | None]]:
         """Poll multiple sensors, raise errors when done.
 
         Raises:
@@ -299,13 +302,13 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             KeyError
-            TypeError (only with `raise_errors=True`)
-            ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
             ExecutionError (only with `raise_errors=True`)
+            TypeError (only with `raise_errors=True`)
+            ValueError (only with `raise_errors=True`)
 
         """
-        sensors = await self.async_set_sensor_values(
+        sensors, errors = await self.async_set_sensor_values(
             [key], [value], raise_errors=raise_errors
         )
         return sensors[0]
@@ -316,30 +319,57 @@ class Manager(Collection, Synchronizer):
         values: Sequence[Any],
         *,
         raise_errors: bool = False,
-    ) -> list[Sensor]:
-        """Set the value of multiple controllable sensors.
+    ) -> tuple[tuple[Sensor], tuple[SensorSetError | None]]:
+        """Set the value of multiple controllable sensors, raise errors when done.
 
         Raises:
             KeyError
-            TypeError (only with `raise_errors=True`)
-            ValueError (only with `raise_errors=True`)
             CommandError (only with `raise_errors=True`)
             ExecutionError (only with `raise_errors=True`)
+            SensorError (only with `raise_errors=True`)
+            TypeError (only with `raise_errors=True`)
+            ValueError (only with `raise_errors=True`)
+
+        Returns:
+            Tuples of sensors and errors in the same order as `keys`.
 
         """
-        sensors, errors = await self.async_poll_sensors(keys, raise_errors=raise_errors)
+        sensors, poll_errors = await self.async_poll_sensors(keys)
+        errors: list[SensorSetError | None] = [*poll_errors]
+        values = [*values]
 
         for i, sensor in enumerate(sensors):
-            if sensor.value is None:
+            if errors[i]:
                 continue
             try:
-                await sensor.async_set(self, values[i])
-            except (TypeError, ValueError, CommandError, ExecutionError):
-                if raise_errors:
-                    raise
+                values[i] = await sensor.async_set(self, values[i])
+            except (
+                SensorError,
+                TypeError,
+                ValueError,
+                CommandError,
+                ExecutionError,
+            ) as exc:
+                errors[i] = exc
 
-        await self.async_poll_sensors(keys, raise_errors=raise_errors)
-        return sensors
+        _, poll_errors = await self.async_poll_sensors(keys)
+
+        for i, sensor in enumerate(sensors):
+            if errors[i]:
+                continue
+            if exc := poll_errors[i]:
+                errors[i] = exc
+                continue
+            if values[i] != sensor.value:
+                errors[i] = SensorError("Value not set correctly")
+
+        errors = set(errors)
+        first_error = next((exc for exc in errors if exc), None)
+
+        if raise_errors and first_error:
+            raise first_error
+
+        return sensors, errors
 
     async def async_turn_off(self) -> CommandOutput:
         """Turn off by running the `TURN_OFF` action.

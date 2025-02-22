@@ -154,31 +154,37 @@ class Sensor:
 
         self.on_update.notify(self)
 
-    async def async_set(self, manager: Manager, value: Any) -> None:
+    async def async_set(self, manager: Manager, value: Any) -> Any:
         """Set a value.
 
         Raises:
+            SensorError
             TypeError
             ValueError
             CommandError
             ExecutionError
 
         """
+        if not self.controllable:
+            raise SensorError(self.key, "Not controllable")
+
         if callable(value):
             try:
                 value = value(self.value)
-            except Exception:
-                raise ValueError("Failed to generate value")
+            except Exception as exc:
+                raise SensorError(self.key, "Failed to generate value") from exc
 
         self._validate(value)
-        command = self._get_control_command(value)
 
-        if command is None or value == self.value:
-            return
+        if not (command := self._get_control_command(value)):
+            raise SensorError(self.key, "Failed to get control command")
 
-        await manager.async_execute_command(
-            command, variables={"id": self.id, "value": value}
-        )
+        if value != self.value:
+            await manager.async_execute_command(
+                command, variables={"id": self.id, "value": value}
+            )
+
+        return value
 
 
 @dataclass
