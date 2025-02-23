@@ -146,16 +146,16 @@ class Manager(Collection, Synchronizer):
         test: bool = False,
         raise_errors: bool = False,
     ) -> None:
-        """Update sensor commands, raise errors when done.
+        """Update state and sensor commands, raise errors when done.
 
         Commands that raised a `CommandError` count as updated.
-        If `force=True`, update all commands.
-        If `once=True`, update only commands that have never been updated before.
-        If `test=True`, execute a test command if there are no commands to update.
+        Update all commands with `force`.
+        Update only commands that have never been updated before with `once`.
+        Execute a test command if there are no commands to update with `test`.
 
         Raises:
-            `CommandError` (only with `raise_errors=True`)
-            `ExecuteError` (only with `raise_errors=True`)
+            `CommandError` (only with `raise_errors`)
+            `ExecuteError` (only with `raise_errors`)
 
         """
         commands = [
@@ -205,8 +205,8 @@ class Manager(Collection, Synchronizer):
         """Execute multiple commands, raise errors when done.
 
         Raises:
-            `CommandError` (only with `raise_errors=True`)
-            `ExecuteError` (only with `raise_errors=True`)
+            `CommandError` (only with `raise_errors`)
+            `ExecuteError` (only with `raise_errors`)
 
         Returns:
             Tuple of errors in the same order as `commands`.
@@ -250,8 +250,8 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             KeyError
-            CommandError (only with `raise_errors=True`)
-            ExecutionError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors`)
+            ExecutionError (only with `raise_errors`)
 
         """
         sensors, errors = await self.async_poll_sensors(
@@ -269,8 +269,8 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             KeyError
-            CommandError (only with `raise_errors=True`)
-            ExecutionError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors`)
+            ExecutionError (only with `raise_errors`)
 
         Returns:
             Tuples of sensors and errors in the same order as `keys`.
@@ -302,10 +302,10 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             KeyError
-            CommandError (only with `raise_errors=True`)
-            ExecutionError (only with `raise_errors=True`)
-            TypeError (only with `raise_errors=True`)
-            ValueError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors`)
+            ExecutionError (only with `raise_errors`)
+            TypeError (only with `raise_errors`)
+            ValueError (only with `raise_errors`)
 
         """
         sensors, errors = await self.async_set_sensor_values(
@@ -324,11 +324,11 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             KeyError
-            CommandError (only with `raise_errors=True`)
-            ExecutionError (only with `raise_errors=True`)
-            SensorError (only with `raise_errors=True`)
-            TypeError (only with `raise_errors=True`)
-            ValueError (only with `raise_errors=True`)
+            CommandError (only with `raise_errors`)
+            ExecutionError (only with `raise_errors`)
+            SensorError (only with `raise_errors`)
+            TypeError (only with `raise_errors`)
+            ValueError (only with `raise_errors`)
 
         Returns:
             Tuples of sensors and errors in the same order as `keys`.
