@@ -116,8 +116,8 @@ class Command:
         """Render string.
 
         Raises:
-            CommandError
-            ExecutionError
+            `CommandError`
+            `ExecutionError`
 
         """
         variables = variables or {}
@@ -165,8 +165,8 @@ class Command:
         """Check configuration.
 
         Raises:
-            SensorError
-            CommandError
+            `SensorError`
+            `CommandError`
 
         """
         commands_by_key = collection.sensor_commands_by_sensor_key
@@ -200,8 +200,8 @@ class Command:
         """Execute.
 
         Raises:
-            CommandError
-            ExecutionError
+            `CommandError`
+            `ExecutionError`
 
         """
         try:
@@ -287,8 +287,8 @@ class SensorCommand(Command):
         """Check command configuration.
 
         Raises:
-            SensorError
-            CommandError
+            `SensorError`
+            `CommandError`
 
         """
         dynamic = False

@@ -136,7 +136,7 @@ class Sensor:
         """Check configuration.
 
         Raises:
-            SensorError
+            `SensorError`
 
         """
         for key in self.linked_sensors:
@@ -158,11 +158,11 @@ class Sensor:
         """Set a value.
 
         Raises:
-            SensorError
-            TypeError
-            ValueError
-            CommandError
-            ExecutionError
+            `SensorError`
+            `TypeError`
+            `ValueError`
+            `CommandError`
+            `ExecutionError`
 
         """
         if not self.controllable:

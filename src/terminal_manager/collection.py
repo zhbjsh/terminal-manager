@@ -84,7 +84,7 @@ class Collection:
         """Get an action command.
 
         Raises:
-            KeyError
+            `KeyError`
 
         """
         return self.action_commands_by_key[key]
@@ -93,7 +93,7 @@ class Collection:
         """Get a sensor command.
 
         Raises:
-            KeyError
+            `KeyError`
 
         """
         return self.sensor_commands_by_sensor_key[key]
@@ -102,7 +102,7 @@ class Collection:
         """Get a sensor.
 
         Raises:
-            KeyError
+            `KeyError`
 
         """
         return self.sensors_by_key[key]
@@ -111,7 +111,7 @@ class Collection:
         """Remove an action command.
 
         Raises:
-            KeyError
+            `KeyError`
 
         """
         command = self.get_action_command(key)
@@ -123,7 +123,7 @@ class Collection:
         Remove the sensor command if it doesnt have any other sensors.
 
         Raises:
-            KeyError
+            `KeyError`
 
         """
         command = self.get_sensor_command(key)
@@ -136,8 +136,8 @@ class Collection:
         """Check commands.
 
         Raises:
-            SensorError
-            CommandError
+            `SensorError`
+            `CommandError`
 
         """
         for command in self.commands:

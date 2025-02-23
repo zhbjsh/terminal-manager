@@ -177,7 +177,7 @@ class Manager(Collection, Synchronizer):
         """Execute a command string.
 
         Raises:
-            ExecutionError
+            `ExecutionError`
 
         """
         raise ExecutionError("Not implemented")
@@ -190,8 +190,8 @@ class Manager(Collection, Synchronizer):
         """Execute a command.
 
         Raises:
-            CommandError
-            ExecutionError
+            `CommandError`
+            `ExecutionError`
 
         """
         return await command.async_execute(self, variables)
@@ -232,9 +232,9 @@ class Manager(Collection, Synchronizer):
         """Run an action.
 
         Raises:
-            KeyError
-            CommandError
-            ExecutionError
+            `KeyError`
+            `CommandError`
+            `ExecutionError`
 
         """
         command = self.get_action_command(key)
@@ -249,9 +249,9 @@ class Manager(Collection, Synchronizer):
         """Poll a sensor.
 
         Raises:
-            KeyError
-            CommandError (only with `raise_errors`)
-            ExecutionError (only with `raise_errors`)
+            `KeyError`
+            `CommandError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
 
         """
         sensors, errors = await self.async_poll_sensors(
@@ -268,9 +268,9 @@ class Manager(Collection, Synchronizer):
         """Poll multiple sensors, raise errors when done.
 
         Raises:
-            KeyError
-            CommandError (only with `raise_errors`)
-            ExecutionError (only with `raise_errors`)
+            `KeyError`
+            `CommandError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
 
         Returns:
             Tuples of sensors and errors in the same order as `keys`.
@@ -301,11 +301,11 @@ class Manager(Collection, Synchronizer):
         """Set the value of a controllable sensor.
 
         Raises:
-            KeyError
-            CommandError (only with `raise_errors`)
-            ExecutionError (only with `raise_errors`)
-            TypeError (only with `raise_errors`)
-            ValueError (only with `raise_errors`)
+            `KeyError`
+            `CommandError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
+            `TypeError` (only with `raise_errors`)
+            `ValueError` (only with `raise_errors`)
 
         """
         sensors, errors = await self.async_set_sensor_values(
@@ -323,12 +323,12 @@ class Manager(Collection, Synchronizer):
         """Set the value of multiple controllable sensors, raise errors when done.
 
         Raises:
-            KeyError
-            CommandError (only with `raise_errors`)
-            ExecutionError (only with `raise_errors`)
-            SensorError (only with `raise_errors`)
-            TypeError (only with `raise_errors`)
-            ValueError (only with `raise_errors`)
+            `KeyError`
+            `CommandError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
+            `SensorError` (only with `raise_errors`)
+            `TypeError` (only with `raise_errors`)
+            `ValueError` (only with `raise_errors`)
 
         Returns:
             Tuples of sensors and errors in the same order as `keys`.
@@ -375,10 +375,10 @@ class Manager(Collection, Synchronizer):
         """Turn off by running the `TURN_OFF` action.
 
         Raises:
-            PermissionError
-            KeyError
-            CommandError
-            ExecutionError
+            `PermissionError`
+            `KeyError`
+            `CommandError`
+            `ExecutionError`
 
         """
         if not self.allow_turn_off:
@@ -395,9 +395,9 @@ class Manager(Collection, Synchronizer):
         """Restart by running the `RESTART` action.
 
         Raises:
-            KeyError
-            CommandError
-            ExecutionError
+            `KeyError`
+            `CommandError`
+            `ExecutionError`
 
         """
         output = await self.async_run_action(ActionKey.RESTART)
