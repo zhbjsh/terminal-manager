@@ -257,11 +257,11 @@ class SensorCommand(Command):
 
     @property
     def should_update(self) -> bool:
-        if not self.interval:
-            return False
-
         if not self.output:
             return True
+
+        if not self.interval:
+            return False
 
         return time() - self.output.timestamp > self.interval
 
