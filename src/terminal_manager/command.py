@@ -134,13 +134,10 @@ class Command:
         except Exception as exc:
             raise CommandError(f"Failed to substitute variable: {exc}") from exc
 
-        try:
-            sensors, errors = await manager.async_poll_sensors(
-                self.required_sensors,
-                raise_errors=True,
-            )
-        except KeyError as exc:
-            raise CommandError(f"Failed to poll required sensor: {exc}") from exc
+        sensors, errors = await manager.async_poll_sensors(
+            self.required_sensors,
+            raise_errors=True,
+        )
 
         for sensor in sensors:
             if sensor.value is not None:
@@ -178,7 +175,7 @@ class Command:
                 commands.append(command)
             for key in command.sub_sensors:
                 if key not in commands_by_key:
-                    continue
+                    raise CommandError(f"Sensor not found: '{key}'")
                 if (sub_command := commands_by_key[key]) in commands:
                     raise CommandError(f"Loop detected: '{key}'")
                 if sub_command not in sub_commands:
@@ -224,11 +221,7 @@ class Command:
             output.code,
         )
 
-        try:
-            await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
-        except KeyError as exc:
-            raise CommandError(f"Failed to poll linked sensor: {exc}") from exc
-
+        await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
         return output
 
 
