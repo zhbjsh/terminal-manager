@@ -9,7 +9,7 @@ from typing import Any
 from .collection import Collection
 from .command import Command, SensorCommand
 from .default_collections.const import ActionKey, SensorKey
-from .errors import CommandError, ExecutionError, SensorError
+from .errors import ExecutionError, SensorError
 from .sensor import Sensor
 from .synchronizer import Synchronizer
 
@@ -20,8 +20,7 @@ DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
 
-CommandExecuteError = CommandError | ExecutionError
-SensorSetError = CommandError | ExecutionError | SensorError | TypeError | ValueError
+SensorSetError = ExecutionError | SensorError | TypeError | ValueError
 
 
 @dataclass(frozen=True)
@@ -148,14 +147,12 @@ class Manager(Collection, Synchronizer):
     ) -> None:
         """Update state and sensor commands, raise errors when done.
 
-        Commands that raised a `CommandError` count as updated.
         Update all commands with `force`.
         Update only commands that have never been updated before with `once`.
         Execute a test command if there are no commands to update with `test`.
 
         Raises:
-            `CommandError` (only with `raise_errors`)
-            `ExecuteError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
 
         """
         commands = [
@@ -190,7 +187,6 @@ class Manager(Collection, Synchronizer):
         """Execute a command.
 
         Raises:
-            `CommandError`
             `ExecutionError`
 
         """
@@ -201,19 +197,18 @@ class Manager(Collection, Synchronizer):
         commands: Sequence[Command],
         *,
         raise_errors: bool = False,
-    ) -> tuple[CommandExecuteError | None]:
+    ) -> tuple[ExecutionError | None]:
         """Execute multiple commands, raise errors when done.
 
         Raises:
-            `CommandError` (only with `raise_errors`)
-            `ExecuteError` (only with `raise_errors`)
+            `ExecutionError` (only with `raise_errors`)
 
         Returns:
             Tuple of errors in the same order as `commands`.
 
         """
         for command in commands:
-            with suppress(CommandError, ExecutionError):
+            with suppress(ExecutionError):
                 await self.async_execute_command(command)
 
         errors = tuple(command.error for command in commands)
@@ -233,7 +228,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
-            `CommandError`
             `ExecutionError`
 
         """
@@ -250,7 +244,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
-            `CommandError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
 
         """
@@ -264,12 +257,11 @@ class Manager(Collection, Synchronizer):
         keys: Sequence[str],
         *,
         raise_errors: bool = False,
-    ) -> tuple[tuple[Sensor], tuple[CommandExecuteError | None]]:
+    ) -> tuple[tuple[Sensor], tuple[ExecutionError | None]]:
         """Poll multiple sensors, raise errors when done.
 
         Raises:
             `KeyError`
-            `CommandError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
 
         Returns:
@@ -302,7 +294,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
-            `CommandError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
             `TypeError` (only with `raise_errors`)
             `ValueError` (only with `raise_errors`)
@@ -324,7 +315,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
-            `CommandError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
             `SensorError` (only with `raise_errors`)
             `TypeError` (only with `raise_errors`)
@@ -347,7 +337,6 @@ class Manager(Collection, Synchronizer):
                 SensorError,
                 TypeError,
                 ValueError,
-                CommandError,
                 ExecutionError,
             ) as exc:
                 errors[i] = exc
@@ -377,7 +366,6 @@ class Manager(Collection, Synchronizer):
         Raises:
             `PermissionError`
             `KeyError`
-            `CommandError`
             `ExecutionError`
 
         """
@@ -396,7 +384,6 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
-            `CommandError`
             `ExecutionError`
 
         """

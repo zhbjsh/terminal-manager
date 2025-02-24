@@ -161,7 +161,6 @@ class Sensor:
             `SensorError`
             `TypeError`
             `ValueError`
-            `CommandError`
             `ExecutionError`
 
         """

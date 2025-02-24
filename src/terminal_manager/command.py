@@ -7,7 +7,7 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, ExecutionError, SensorError
+from .errors import CommandError, ExecutionError
 from .helpers import name_to_key
 from .sensor import Sensor
 
@@ -85,7 +85,7 @@ class Command:
     _linked_sensors: set[str] = field(default_factory=set, init=False, repr=False)
 
     def __post_init__(self):
-        self.error: CommandError | ExecutionError | None = None
+        self.error: ExecutionError | None = None
         self.output: CommandOutput | None = None
 
     @property
@@ -116,7 +116,6 @@ class Command:
         """Render string.
 
         Raises:
-            `CommandError`
             `ExecutionError`
 
         """
@@ -127,7 +126,7 @@ class Command:
         try:
             string = VariableTemplate(string).substitute(variables)
         except Exception as exc:
-            raise CommandError(f"Failed to substitute variable: {exc}") from exc
+            raise ExecutionError(f"Failed to substitute variables: {exc}") from exc
 
         sensors, errors = await manager.async_poll_sensors(
             self.required_sensors,
@@ -138,12 +137,12 @@ class Command:
             if sensor.value is not None:
                 sensor_values_by_key[sensor.key] = sensor.value
             else:
-                raise CommandError(f"Value of required sensor {sensor.key} is None")
+                raise ExecutionError(f"Value of required sensor {sensor.key} is None")
 
         try:
             string = SensorTemplate(string).substitute(sensor_values_by_key)
         except Exception as exc:
-            raise CommandError(f"Failed to substitute sensor {exc}") from exc
+            raise ExecutionError(f"Failed to substitute sensors {exc}") from exc
 
         if self.renderer:
             return self.renderer(string)
@@ -200,14 +199,13 @@ class Command:
         """Execute.
 
         Raises:
-            `CommandError`
             `ExecutionError`
 
         """
         try:
             string = await self.async_render_string(manager, variables)
             output = await manager.async_execute_command_string(string, self.timeout)
-        except (CommandError, ExecutionError) as exc:
+        except ExecutionError as exc:
             self.error = exc
             self.output = None
             manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
@@ -259,9 +257,6 @@ class SensorCommand(Command):
 
     @property
     def should_update(self) -> bool:
-        if not self.output:
-            return not isinstance(self.error, CommandError)
-
         if not self.interval:
             return False
 
