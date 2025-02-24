@@ -150,13 +150,10 @@ class Command:
         except Exception as exc:
             raise CommandError(f"Failed to substitute sensor {exc}") from exc
 
-        if not self.renderer:
-            return string
-
-        try:
+        if self.renderer:
             return self.renderer(string)
-        except Exception as exc:
-            raise CommandError(f"Failed to render string {exc}") from exc
+
+        return string
 
     def check(self, collection: Collection) -> None:
         """Check configuration.
@@ -175,7 +172,7 @@ class Command:
                 commands.append(command)
             for key in command.sub_sensors:
                 if key not in commands_by_key:
-                    raise CommandError(f"Sensor not found: '{key}'")
+                    raise CommandError(f"Sensor '{key}' not found")
                 if (sub_command := commands_by_key[key]) in commands:
                     raise CommandError(f"Loop detected: '{key}'")
                 if sub_command not in sub_commands:
@@ -183,6 +180,17 @@ class Command:
                     detect_loop(sub_command)
 
         detect_loop(self)
+
+        if not self.renderer:
+            return
+
+        try:
+            string = self.renderer(self.string)
+        except Exception as exc:
+            raise CommandError(f"Failed to render string: '{exc}'") from exc
+
+        if not isinstance(string, str):
+            raise CommandError(f"Renderer returned {type(string)} instead of {str}")
 
     def reset(self, manager: Manager) -> None:
         """Reset."""
@@ -290,7 +298,7 @@ class SensorCommand(Command):
             if sensor.dynamic:
                 dynamic = True
             if dynamic and not sensor.dynamic:
-                raise SensorError(sensor.key, "Sensor must be dynamic")
+                raise CommandError(f"Sensor '{sensor.key}' must be dynamic")
             sensor.check(collection)
 
         super().check(collection)
