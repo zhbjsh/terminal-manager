@@ -89,6 +89,15 @@ linux = Collection(
             ],
         ),
         SensorCommand(
+            '(. /etc/os-release && echo "$PRETTY_NAME")',
+            sensors=[
+                TextSensor(
+                    SensorName.OS_RELEASE,
+                    SensorKey.OS_RELEASE,
+                ),
+            ],
+        ),
+        SensorCommand(
             'x=$(/sbin/dmidecode -t system 2>/dev/null) && awk -F ": " \''
             "/Product Name:/ {a=$2} "
             "/Version:/ {b=$2} "

@@ -88,6 +88,10 @@ class Manager(Collection, Synchronizer):
         return self._last_known_value_or_none(SensorKey.OS_VERSION)
 
     @property
+    def os_release(self) -> str | None:
+        return self._last_known_value_or_none(SensorKey.OS_RELEASE)
+
+    @property
     def os_architecture(self) -> str | None:
         return self._last_known_value_or_none(SensorKey.OS_ARCHITECTURE)
 
