@@ -125,11 +125,6 @@ class Command:
         string = self.string
 
         try:
-            self.check(manager)
-        except SensorError as exc:
-            raise CommandError(str(exc)) from exc
-
-        try:
             string = VariableTemplate(string).substitute(variables)
         except Exception as exc:
             raise CommandError(f"Failed to substitute variable: {exc}") from exc
