@@ -20,23 +20,6 @@ VARIABLE_DELIMITER = "@"
 PLACEHOLDER_KEY = "_"
 
 
-# Not needed anymore after python 3.11
-class Template(Template):
-    def get_identifiers(self):
-        ids = []
-        for mo in self.pattern.finditer(self.template):
-            named = mo.group("named") or mo.group("braced")
-            if named is not None and named not in ids:
-                ids.append(named)
-            elif (
-                named is None
-                and mo.group("invalid") is None
-                and mo.group("escaped") is None
-            ):
-                raise ValueError("Unrecognized named group in pattern", self.pattern)
-        return ids
-
-
 class SensorTemplate(Template):
     delimiter = SENSOR_DELIMITER
     pattern = rf"""
