@@ -68,7 +68,6 @@ class Command:
     _linked_sensors: set[str] = field(default_factory=set, init=False, repr=False)
 
     def __post_init__(self):
-        self.error: ExecutionError | None = None
         self.output: CommandOutput | None = None
 
     @property
@@ -171,7 +170,6 @@ class Command:
 
     def reset(self, manager: Manager) -> None:
         """Reset."""
-        self.error = None
         self.output = None
 
     async def async_execute(
@@ -189,12 +187,10 @@ class Command:
             string = await self.async_render_string(manager, variables)
             output = await manager.async_execute_command_string(string, self.timeout)
         except ExecutionError as exc:
-            self.error = exc
             self.output = None
             manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
             raise
 
-        self.error = None
         self.output = output
         manager.logger.debug(
             "%s: %s => %s, %s, %s",
