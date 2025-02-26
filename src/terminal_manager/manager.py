@@ -211,11 +211,17 @@ class Manager(Collection, Synchronizer):
             Tuple of errors in the same order as `commands`.
 
         """
-        for command in commands:
-            with suppress(ExecutionError):
-                await self.async_execute_command(command)
+        errors = []
 
-        errors = tuple(command.error for command in commands)
+        for command in commands:
+            try:
+                await self.async_execute_command(command)
+            except ExecutionError as exc:
+                errors.append(exc)
+            else:
+                errors.append(None)
+
+        errors = tuple(errors)
         first_error = next((exc for exc in errors if exc), None)
 
         if raise_errors and first_error:
@@ -356,7 +362,7 @@ class Manager(Collection, Synchronizer):
             if values[i] != sensor.value:
                 errors[i] = SensorError("Value not set correctly")
 
-        errors = set(errors)
+        errors = tuple(errors)
         first_error = next((exc for exc in errors if exc), None)
 
         if raise_errors and first_error:
