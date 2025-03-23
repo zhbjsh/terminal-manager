@@ -8,10 +8,12 @@ from typing import Any
 
 from .collection import Collection
 from .command import Command, SensorCommand
-from .default_collections.const import ActionKey, SensorKey
-from .errors import ExecutionError, SensorError
+from .defaults import ActionKey, SensorKey
+from .error import ConnectError, ExecutionError, OfflineError, SensorError
 from .sensor import Sensor
+from .state import State
 from .synchronizer import Synchronizer
+from .terminal import Terminal
 
 _LOGGER = logging.getLogger(__name__)
 _TEST_COMMAND = Command("echo ''")
@@ -19,8 +21,10 @@ _TEST_COMMAND = Command("echo ''")
 DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
+DEFAULT_DISCONNECT_MODE = False
 
-SensorSetError = ExecutionError | SensorError | TypeError | ValueError
+ExecuteErrorType = ConnectError | ExecutionError
+SetErrorType = ConnectError | ExecutionError | SensorError | TypeError | ValueError
 
 
 @dataclass(frozen=True)
@@ -35,10 +39,13 @@ class CommandOutput:
 class Manager(Collection, Synchronizer):
     def __init__(
         self,
+        terminal: Terminal,
         *,
         name: str = DEFAULT_NAME,
         command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
         allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
+        disconnect_mode: bool = DEFAULT_DISCONNECT_MODE,
+        mac_address: str | None = None,
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
     ) -> None:
@@ -49,97 +56,122 @@ class Manager(Collection, Synchronizer):
             collection.action_commands if collection else None,
             collection.sensor_commands if collection else None,
         )
-        self.command_timeout = command_timeout
-        self.allow_turn_off = allow_turn_off
-        self.logger = logger
+        self._terminal = terminal
+        self._command_timeout = command_timeout
+        self._allow_turn_off = allow_turn_off
+        self._disconnect_mode = disconnect_mode
+        self._mac_address = mac_address
+        self._logger = logger
+        self._state = State(self)
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *args):
-        await self.async_close()
+        await self.async_disconnect()
+
+    @property
+    def state(self) -> State:
+        return self._state
 
     @property
     def network_interface(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.NETWORK_INTERFACE)
+        return self.get_sensor_value(SensorKey.NETWORK_INTERFACE)
 
     @property
     def mac_address(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.MAC_ADDRESS)
+        return self._mac_address or self.get_sensor_value(SensorKey.MAC_ADDRESS)
 
     @property
     def wake_on_lan(self) -> bool | None:
-        return self._last_known_value_or_none(SensorKey.WAKE_ON_LAN)
+        return self.get_sensor_value(SensorKey.WAKE_ON_LAN)
 
     @property
     def machine_type(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.MACHINE_TYPE)
+        return self.get_sensor_value(SensorKey.MACHINE_TYPE)
 
     @property
     def hostname(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.HOSTNAME)
+        return self.get_sensor_value(SensorKey.HOSTNAME)
 
     @property
     def os_name(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.OS_NAME)
+        return self.get_sensor_value(SensorKey.OS_NAME)
 
     @property
     def os_version(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.OS_VERSION)
+        return self.get_sensor_value(SensorKey.OS_VERSION)
 
     @property
     def os_release(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.OS_RELEASE)
+        return self.get_sensor_value(SensorKey.OS_RELEASE)
 
     @property
     def os_architecture(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.OS_ARCHITECTURE)
+        return self.get_sensor_value(SensorKey.OS_ARCHITECTURE)
 
     @property
     def device_name(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.DEVICE_NAME)
+        return self.get_sensor_value(SensorKey.DEVICE_NAME)
 
     @property
     def device_model(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.DEVICE_MODEL)
+        return self.get_sensor_value(SensorKey.DEVICE_MODEL)
 
     @property
     def manufacturer(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.MANUFACTURER)
+        return self.get_sensor_value(SensorKey.MANUFACTURER)
 
     @property
     def serial_number(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.SERIAL_NUMBER)
+        return self.get_sensor_value(SensorKey.SERIAL_NUMBER)
 
     @property
     def cpu_name(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.CPU_NAME)
+        return self.get_sensor_value(SensorKey.CPU_NAME)
 
     @property
     def cpu_cores(self) -> int | None:
-        return self._last_known_value_or_none(SensorKey.CPU_CORES)
+        return self.get_sensor_value(SensorKey.CPU_CORES)
 
     @property
     def cpu_hardware(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.CPU_HARDWARE)
+        return self.get_sensor_value(SensorKey.CPU_HARDWARE)
 
     @property
     def cpu_model(self) -> str | None:
-        return self._last_known_value_or_none(SensorKey.CPU_MODEL)
+        return self.get_sensor_value(SensorKey.CPU_MODEL)
 
-    def _last_known_value_or_none(self, sensor_key: str) -> Any | None:
-        if sensor := self.sensors_by_key.get(sensor_key):
-            return sensor.last_known_value
+    @property
+    def can_connect(self) -> bool:
+        return self.state.online and not (self.state.shutting_down or self.state.error)
 
-        return None
+    @property
+    def can_execute(self) -> bool:
+        return self.state.connected or (self._disconnect_mode and self.can_connect)
 
-    def reset_commands(self) -> None:
-        """Reset commands and clear sensor values."""
-        for command in *self.action_commands, *self.sensor_commands:
+    @property
+    def can_turn_off(self) -> bool:
+        return (
+            self.can_execute
+            and self._allow_turn_off
+            and ActionKey.TURN_OFF in self.action_commands_by_key
+        )
+
+    @property
+    def can_restart(self) -> bool:
+        return self.can_execute and ActionKey.RESTART in self.action_commands_by_key
+
+    def log(self, message: str) -> None:
+        """Log a message."""
+        self._logger.debug("%s: %s", self.name, message)
+
+    async def async_reset(self) -> None:
+        """Disconnect and reset commands."""
+        await self.async_disconnect()
+
+        for command in self.commands:
             command.reset(self)
-
-    async def async_close(self) -> None:
-        """Close."""
 
     async def async_update(
         self,
@@ -147,41 +179,138 @@ class Manager(Collection, Synchronizer):
         force: bool = False,
         once: bool = False,
         test: bool = False,
-        raise_errors: bool = False,
     ) -> None:
         """Update state and sensor commands, raise errors when done.
 
         Update all commands with `force`.
         Update only commands that have never been updated before with `once`.
         Execute a test command if there are no commands to update with `test`.
+        Never execute a test command in disconnect mode.
 
         Raises:
-            `ExecutionError` (only with `raise_errors`)
+            `OfflineError`
+            `ConnectError`
+            `ExecutionError`
 
         """
-        commands = [
-            command
-            for command in self.sensor_commands
-            if force or (command.should_update and not (once and command.output))
-        ]
+        self.state.update()
 
-        if test:
-            commands = commands or [_TEST_COMMAND]
+        async def async_update_sensor_commands():
+            commands = [
+                command
+                for command in self.sensor_commands
+                if force or (command.should_update and not (once and command.output))
+            ]
+            if test and not self._disconnect_mode:
+                commands = commands or [_TEST_COMMAND]
+            await self.async_execute_commands(commands)
 
-        await self.async_execute_commands(commands, raise_errors=raise_errors)
+        if not self._disconnect_mode and self.state.connected:
+            try:
+                await async_update_sensor_commands()
+            except ExecutionError:
+                pass
+            else:
+                return
 
-    async def async_execute_command_string(
+        await self.async_ping()
+
+        if not self._disconnect_mode:
+            await self.async_connect()
+
+        await async_update_sensor_commands()
+
+    async def async_ping(self) -> None:
+        """Ping.
+
+        Raises:
+            `OfflineError`
+
+        """
+        try:
+            await self._terminal.async_ping()
+        except OfflineError:
+            await self.async_reset()
+            self.state.handle_ping_error()
+            raise
+        else:
+            self.state.handle_ping_success()
+
+    async def async_connect(self) -> None:
+        """Connect.
+
+        Return if already connected.
+
+        Raises:
+            `ConnectError`
+
+        """
+        if self.state.connected:
+            return
+
+        if not self.state.online:
+            raise ConnectError("Host is offline")
+
+        if self.state.shutting_down:
+            raise ConnectError("Host is shutting down")
+
+        if self.state.error:
+            raise ConnectError("Waiting for update after error")
+
+        try:
+            await self._terminal.async_connect()
+        except ConnectError:
+            await self.async_reset()
+            self.state.handle_connect_error()
+            raise
+        else:
+            self.state.handle_connect_success()
+
+    async def async_disconnect(self) -> None:
+        """Disconnect.
+
+        Return if already disconnected.
+        """
+        if not self.state.connected:
+            return
+
+        await self._terminal.async_disconnect()
+        self.state.handle_disconnect()
+
+    async def async_execute(
         self,
         string: str,
         command_timeout: int | None = None,
     ) -> CommandOutput:
-        """Execute a command string.
+        """Execute.
+
+        Connect before and disconnect after execution if disconnect mode is enabled.
 
         Raises:
+            `ConnectError`
             `ExecutionError`
 
         """
-        raise ExecutionError("Not implemented")
+        if self._disconnect_mode:
+            await self.async_connect()
+
+        if not self.state.connected:
+            raise ExecutionError("Not connected")
+
+        try:
+            output = await self._terminal.async_execute(
+                string, command_timeout or self._command_timeout
+            )
+        except TimeoutError as exc:
+            raise ExecutionError("Timeout during command") from exc
+        except ExecutionError:
+            await self.async_reset()
+            raise
+
+        if self._disconnect_mode:
+            await self.async_disconnect()
+
+        return output
 
     async def async_execute_command(
         self,
@@ -191,41 +320,53 @@ class Manager(Collection, Synchronizer):
         """Execute a command.
 
         Raises:
+            `ConnectError`
             `ExecutionError`
 
         """
-        return await command.async_execute(self, variables)
+        try:
+            string = await command.async_render_string(self, variables)
+        except (ConnectError, ExecutionError) as exc:
+            self.log(f"{command.string} => {exc}")
+            command.handle_error(self, exc)
+            raise
+
+        try:
+            output = await self.async_execute(string, command.timeout)
+        except (ConnectError, ExecutionError) as exc:
+            self.log(f"{string} => {exc}")
+            command.handle_error(self, exc)
+            raise
+
+        self.log(f"{string} => {output.stdout}, {output.stderr}, {output.code}")
+        command.handle_success(self, output)
+        await self.async_poll_sensors(command.linked_sensors)
+        return output
 
     async def async_execute_commands(
         self,
         commands: Sequence[Command],
         *,
-        raise_errors: bool = False,
-    ) -> tuple[ExecutionError | None]:
+        raise_errors: bool = True,
+    ) -> tuple[ExecuteErrorType | None]:
         """Execute multiple commands, raise errors when done.
 
         Raises:
+            `ConnectError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
 
         Returns:
             Tuple of errors in the same order as `commands`.
 
         """
-        errors = []
-
         for command in commands:
-            try:
+            with suppress(ConnectError, ExecutionError):
                 await self.async_execute_command(command)
-            except ExecutionError as exc:
-                errors.append(exc)
-            else:
-                errors.append(None)
 
-        errors = tuple(errors)
-        first_error = next((exc for exc in errors if exc), None)
+        errors = tuple(command.error for command in commands)
 
-        if raise_errors and first_error:
-            raise first_error
+        if raise_errors and (exc := next((e for e in errors if e), None)):
+            raise exc
 
         return errors
 
@@ -238,40 +379,36 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
+            `ConnectError`
             `ExecutionError`
 
         """
         command = self.get_action_command(key)
         return await self.async_execute_command(command, variables)
 
-    async def async_poll_sensor(
-        self,
-        key: str,
-        *,
-        raise_errors: bool = False,
-    ) -> Sensor:
+    async def async_poll_sensor(self, key: str) -> Sensor:
         """Poll a sensor.
 
         Raises:
             `KeyError`
-            `ExecutionError` (only with `raise_errors`)
+            `ConnectError`
+            `ExecutionError`
 
         """
-        sensors, errors = await self.async_poll_sensors(
-            [key], raise_errors=raise_errors
-        )
+        sensors, _ = await self.async_poll_sensors([key])
         return sensors[0]
 
     async def async_poll_sensors(
         self,
         keys: Sequence[str],
         *,
-        raise_errors: bool = False,
-    ) -> tuple[tuple[Sensor], tuple[ExecutionError | None]]:
+        raise_errors: bool = True,
+    ) -> tuple[tuple[Sensor], tuple[ExecuteErrorType | None]]:
         """Poll multiple sensors, raise errors when done.
 
         Raises:
             `KeyError`
+            `ConnectError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
 
         Returns:
@@ -286,32 +423,21 @@ class Manager(Collection, Synchronizer):
             if command not in unique_commands:
                 unique_commands.append(command)
 
-        errors = await self.async_execute_commands(
-            unique_commands,
-            raise_errors=raise_errors,
-        )
+        await self.async_execute_commands(unique_commands, raise_errors=raise_errors)
+        return sensors, tuple(command.error for command in commands)
 
-        return sensors, errors
-
-    async def async_set_sensor_value(
-        self,
-        key: str,
-        value: Any,
-        *,
-        raise_errors: bool = False,
-    ) -> Sensor:
+    async def async_set_sensor_value(self, key: str, value: Any) -> Sensor:
         """Set the value of a controllable sensor.
 
         Raises:
             `KeyError`
-            `ExecutionError` (only with `raise_errors`)
-            `TypeError` (only with `raise_errors`)
-            `ValueError` (only with `raise_errors`)
+            `ConnectError`
+            `ExecutionError`
+            `TypeError`
+            `ValueError`
 
         """
-        sensors, errors = await self.async_set_sensor_values(
-            [key], [value], raise_errors=raise_errors
-        )
+        sensors, _ = await self.async_set_sensor_values([key], [value])
         return sensors[0]
 
     async def async_set_sensor_values(
@@ -319,12 +445,13 @@ class Manager(Collection, Synchronizer):
         keys: Sequence[str],
         values: Sequence[Any],
         *,
-        raise_errors: bool = False,
-    ) -> tuple[tuple[Sensor], tuple[SensorSetError | None]]:
+        raise_errors: bool = True,
+    ) -> tuple[tuple[Sensor], tuple[SetErrorType | None]]:
         """Set the value of multiple controllable sensors, raise errors when done.
 
         Raises:
             `KeyError`
+            `ConnectError` (only with `raise_errors`)
             `ExecutionError` (only with `raise_errors`)
             `SensorError` (only with `raise_errors`)
             `TypeError` (only with `raise_errors`)
@@ -335,7 +462,7 @@ class Manager(Collection, Synchronizer):
 
         """
         sensors, poll_errors = await self.async_poll_sensors(keys)
-        errors: list[SensorSetError | None] = [*poll_errors]
+        errors = [*poll_errors]
         values = [*values]
 
         for i, sensor in enumerate(sensors):
@@ -347,6 +474,7 @@ class Manager(Collection, Synchronizer):
                 SensorError,
                 TypeError,
                 ValueError,
+                ConnectError,
                 ExecutionError,
             ) as exc:
                 errors[i] = exc
@@ -363,10 +491,9 @@ class Manager(Collection, Synchronizer):
                 errors[i] = SensorError("Value not set correctly")
 
         errors = tuple(errors)
-        first_error = next((exc for exc in errors if exc), None)
 
-        if raise_errors and first_error:
-            raise first_error
+        if raise_errors and (exc := next((e for e in errors if e), None)):
+            raise exc
 
         return sensors, errors
 
@@ -376,10 +503,11 @@ class Manager(Collection, Synchronizer):
         Raises:
             `PermissionError`
             `KeyError`
+            `ConnectError`
             `ExecutionError`
 
         """
-        if not self.allow_turn_off:
+        if not self._allow_turn_off:
             raise PermissionError("Not allowed to turn off")
 
         output = await self.async_run_action(ActionKey.TURN_OFF)
@@ -387,6 +515,8 @@ class Manager(Collection, Synchronizer):
         if output.code > 0:
             raise ExecutionError(f"'TURN_OFF' action returned exit code {output.code}")
 
+        await self.async_disconnect()
+        self.state.handle_turn_off()
         return output
 
     async def async_restart(self) -> CommandOutput:
@@ -394,6 +524,7 @@ class Manager(Collection, Synchronizer):
 
         Raises:
             `KeyError`
+            `ConnectError`
             `ExecutionError`
 
         """
@@ -402,4 +533,6 @@ class Manager(Collection, Synchronizer):
         if output.code > 0:
             raise ExecutionError(f"'RESTART' action returned exit code {output.code}")
 
+        await self.async_disconnect()
+        self.state.handle_restart()
         return output

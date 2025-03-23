@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 
 from .command import ActionCommand, Command, SensorCommand
+from .defaults import ACTION_NAMES, SENSOR_NAMES
 from .sensor import Sensor
 
 
 class Collection:
     action_commands: list[ActionCommand]
     sensor_commands: list[SensorCommand]
+
+    _action_names = ACTION_NAMES
+    _sensor_names = SENSOR_NAMES
 
     def __init__(
         self,
@@ -64,21 +69,29 @@ class Collection:
 
         Remove existing action command with the same key.
         """
+        command = deepcopy(command)
+
         if command.key in self.action_commands_by_key:
             self.remove_action_command(command.key)
+        if not command.name and command.key in self._action_names:
+            command.name = self._action_names[command.key]
 
-        self.action_commands.append(deepcopy(command))
+        self.action_commands.append(command)
 
     def add_sensor_command(self, command: SensorCommand) -> None:
         """Add a sensor command.
 
         Remove existing sensors with the same keys.
         """
+        command = deepcopy(command)
+
         for sensor in command.sensors:
             if sensor.key in self.sensors_by_key:
                 self.remove_sensor(sensor.key)
+            if not sensor.name and sensor.key in self._sensor_names:
+                sensor.name = self._sensor_names[sensor.key]
 
-        self.sensor_commands.append(deepcopy(command))
+        self.sensor_commands.append(command)
 
     def get_action_command(self, key: str) -> ActionCommand:
         """Get an action command.
@@ -106,6 +119,13 @@ class Collection:
 
         """
         return self.sensors_by_key[key]
+
+    def get_sensor_value(self, key: str, last_known: bool = True) -> Any | None:
+        """Get sensor value or `None`."""
+        if sensor := self.sensors_by_key.get(key):
+            return sensor.last_known_value if last_known else sensor.value
+
+        return None
 
     def remove_action_command(self, key: str) -> None:
         """Remove an action command.

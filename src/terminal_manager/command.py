@@ -7,13 +7,13 @@ from string import Template
 from time import time
 from typing import TYPE_CHECKING
 
-from .errors import CommandError, ExecutionError
+from .error import CommandError, ExecutionError
 from .helpers import name_to_key
 from .sensor import Sensor
 
 if TYPE_CHECKING:
     from .collection import Collection
-    from .manager import CommandOutput, Manager
+    from .manager import ExecuteErrorType, CommandOutput, Manager
 
 SENSOR_DELIMITER = "&"
 VARIABLE_DELIMITER = "@"
@@ -69,6 +69,7 @@ class Command:
 
     def __post_init__(self):
         self.output: CommandOutput | None = None
+        self.error: ExecuteErrorType | None = None
 
     @property
     def required_variables(self) -> set[str]:
@@ -98,6 +99,7 @@ class Command:
         """Render string.
 
         Raises:
+            `ConnectError`
             `ExecutionError`
 
         """
@@ -110,10 +112,7 @@ class Command:
         except Exception as exc:
             raise ExecutionError(f"Failed to substitute variables: {exc}") from exc
 
-        sensors, errors = await manager.async_poll_sensors(
-            self.required_sensors,
-            raise_errors=True,
-        )
+        sensors, _ = await manager.async_poll_sensors(self.required_sensors)
 
         for sensor in sensors:
             if sensor.value is not None:
@@ -124,7 +123,7 @@ class Command:
         try:
             string = SensorTemplate(string).substitute(sensor_values_by_key)
         except Exception as exc:
-            raise ExecutionError(f"Failed to substitute sensors {exc}") from exc
+            raise ExecutionError(f"Failed to substitute sensors: {exc}") from exc
 
         if self.renderer:
             return self.renderer(string)
@@ -171,38 +170,17 @@ class Command:
     def reset(self, manager: Manager) -> None:
         """Reset."""
         self.output = None
+        self.error = None
 
-    async def async_execute(
-        self,
-        manager: Manager,
-        variables: dict | None = None,
-    ) -> CommandOutput:
-        """Execute.
-
-        Raises:
-            `ExecutionError`
-
-        """
-        try:
-            string = await self.async_render_string(manager, variables)
-            output = await manager.async_execute_command_string(string, self.timeout)
-        except ExecutionError as exc:
-            self.output = None
-            manager.logger.debug("%s: %s => %s", manager.name, self.string, exc)
-            raise
-
+    def handle_success(self, manager: Manager, output: CommandOutput) -> None:
+        """Handle success."""
         self.output = output
-        manager.logger.debug(
-            "%s: %s => %s, %s, %s",
-            manager.name,
-            output.command_string,
-            output.stdout,
-            output.stderr,
-            output.code,
-        )
+        self.error = None
 
-        await manager.async_poll_sensors(self.linked_sensors, raise_errors=True)
-        return output
+    def handle_error(self, manager: Manager, exc: ExecuteErrorType) -> None:
+        """Handle error."""
+        self.output = None
+        self.error = exc
 
 
 @dataclass
@@ -286,11 +264,23 @@ class SensorCommand(Command):
 
     def reset(self, manager: Manager) -> None:
         """Reset and clear sensor values."""
+        if self.output:
+            self.clear_sensor_values(manager)
+
         super().reset(manager)
-        self.clear_sensor_values(manager)
+
+    def handle_success(self, manager: Manager, output: CommandOutput) -> None:
+        """Handle success and update sensors."""
+        super().handle_success(manager, output)
+        self.update_sensors(manager)
+
+    def handle_error(self, manager: Manager, exc: ExecuteErrorType) -> None:
+        """Handle error and update sensors."""
+        super().handle_error(manager, exc)
+        self.update_sensors(manager)
 
     def update_sensors(self, manager: Manager) -> None:
-        """Update the sensors."""
+        """Update sensors."""
         if not (output := self.output) or output.code > 0:
             self.clear_sensor_values(manager)
             return
@@ -324,13 +314,3 @@ class SensorCommand(Command):
                 if len(fields := line.split(self.separator)) > dyn_count
             ] or None
             sensor.update(manager, sensor_data or None)
-
-    async def async_execute(
-        self,
-        manager: Manager,
-        variables: dict | None = None,
-    ) -> CommandOutput:
-        try:
-            return await super().async_execute(manager, variables)
-        finally:
-            self.update_sensors(manager)

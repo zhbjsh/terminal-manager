@@ -5,7 +5,7 @@ from dataclasses import KW_ONLY, dataclass, field, replace
 import re
 from typing import TYPE_CHECKING, Any, Self
 
-from .errors import SensorError
+from .error import SensorError
 from .event import Event
 from .helpers import name_to_key
 
@@ -99,11 +99,9 @@ class Sensor:
             self.value = self._render_value(data)
         except (TypeError, ValueError) as exc:
             self.value = None
-            manager.logger.debug(
-                "%s: %s => %s (%s)", manager.name, self.key, self.value, exc
-            )
+            manager.log(f"{self.key} => {self.value} ({exc})")
         else:
-            manager.logger.debug("%s: %s => %s", manager.name, self.key, self.value)
+            manager.log(f"{self.key} => {self.value}")
 
         if self.value is not None:
             self.last_known_value = self.value
@@ -161,6 +159,7 @@ class Sensor:
             `SensorError`
             `TypeError`
             `ValueError`
+            `ConnectError`
             `ExecutionError`
 
         """
