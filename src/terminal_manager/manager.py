@@ -8,7 +8,7 @@ from typing import Any
 
 from .collection import Collection
 from .command import Command, SensorCommand
-from .defaults import ActionKey, SensorKey
+from .default_collections.const import ACTION_NAMES, SENSOR_NAMES, ActionKey, SensorKey
 from .error import ConnectError, ExecutionError, OfflineError, SensorError
 from .sensor import Sensor
 from .state import State
@@ -37,6 +37,9 @@ class CommandOutput:
 
 
 class Manager(Collection, Synchronizer):
+    _action_names = ACTION_NAMES
+    _sensor_names = SENSOR_NAMES
+
     def __init__(
         self,
         terminal: Terminal,

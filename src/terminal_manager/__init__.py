@@ -2,7 +2,7 @@
 
 from .collection import Collection
 from .command import PLACEHOLDER_KEY, ActionCommand, Command, SensorCommand
-from .defaults import ACTION_NAMES, SENSOR_NAMES, ActionKey, SensorKey
+from .default_collections.const import ACTION_NAMES, SENSOR_NAMES, ActionKey, SensorKey
 from .error import (
     AuthenticationError,
     CommandError,

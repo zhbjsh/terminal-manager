@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any
 
 from .command import ActionCommand, Command, SensorCommand
-from .defaults import ACTION_NAMES, SENSOR_NAMES
 from .sensor import Sensor
 
 
@@ -12,8 +11,8 @@ class Collection:
     action_commands: list[ActionCommand]
     sensor_commands: list[SensorCommand]
 
-    _action_names = ACTION_NAMES
-    _sensor_names = SENSOR_NAMES
+    _action_names = {}
+    _sensor_names = {}
 
     def __init__(
         self,
