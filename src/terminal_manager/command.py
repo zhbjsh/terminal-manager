@@ -13,7 +13,7 @@ from .sensor import Sensor
 
 if TYPE_CHECKING:
     from .collection import Collection
-    from .manager import ExecuteErrorType, CommandOutput, Manager
+    from .manager import CommandOutput, ExecuteErrorType, Manager
 
 SENSOR_DELIMITER = "&"
 VARIABLE_DELIMITER = "@"
