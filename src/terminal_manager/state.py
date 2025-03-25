@@ -9,8 +9,13 @@ from .event import Event
 if TYPE_CHECKING:
     from .manager import Manager
 
-STATE_NAMES = ["online", "connected", "request", "error"]
-TIMEOUTS = {"turn_on": 60, "turn_off": 30, "restart": 30, "connect": 30}
+
+STATE_NAMES = [
+    "online",
+    "connected",
+    "request",
+    "error",
+]
 
 
 class Request(StrEnum):
@@ -26,8 +31,9 @@ class State:
     request: Request | None = None
     error: bool = False
 
-    def __init__(self, manager: Manager) -> None:
+    def __init__(self, manager: Manager, request_timeouts: dict[str, int]) -> None:
         self._manager = manager
+        self._request_timeouts = request_timeouts
         self._request_timestamp = time()
         self.on_change = Event()
 
@@ -52,11 +58,18 @@ class State:
     def shutting_down(self) -> bool:
         return self.request in [Request.TURN_OFF, Request.RESTART]
 
+    @property
+    def request_expired(self) -> bool:
+        if self.request:
+            timeout = self._request_timeouts[self.request]
+            return time() - self._request_timestamp > timeout
+        return False
+
     def update(self) -> None:
         """Reset error and set request to `None` if expired."""
         if self.error:
             self.error = False
-        if self.request and time() - self._request_timestamp > TIMEOUTS[self.request]:
+        if self.request_expired:
             self.request = None
 
     def handle_ping_error(self) -> None:
