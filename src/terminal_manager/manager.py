@@ -22,6 +22,12 @@ DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
 DEFAULT_DISCONNECT_MODE = False
+DEFAULT_REQUEST_TIMEOUTS = {
+    "turn_on": 60,
+    "turn_off": 30,
+    "restart": 30,
+    "connect": 30,
+}
 
 ExecuteErrorType = ConnectError | ExecutionError
 SetErrorType = ConnectError | ExecutionError | SensorError | TypeError | ValueError
@@ -48,6 +54,7 @@ class Manager(Collection, Synchronizer):
         command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
         allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
         disconnect_mode: bool = DEFAULT_DISCONNECT_MODE,
+        request_timeouts: dict[str, int] = DEFAULT_REQUEST_TIMEOUTS,
         mac_address: str | None = None,
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
@@ -65,7 +72,7 @@ class Manager(Collection, Synchronizer):
         self._disconnect_mode = disconnect_mode
         self._mac_address = mac_address
         self._logger = logger
-        self._state = State(self)
+        self._state = State(self, request_timeouts)
 
     async def __aenter__(self):
         return self
