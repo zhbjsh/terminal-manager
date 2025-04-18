@@ -472,7 +472,7 @@ class Manager(Collection, Synchronizer):
             Tuples of sensors and errors in the same order as `keys`.
 
         """
-        sensors, poll_errors = await self.async_poll_sensors(keys)
+        sensors, poll_errors = await self.async_poll_sensors(keys, raise_errors=False)
         errors = [*poll_errors]
         values = [*values]
 
@@ -490,7 +490,7 @@ class Manager(Collection, Synchronizer):
             ) as exc:
                 errors[i] = exc
 
-        _, poll_errors = await self.async_poll_sensors(keys)
+        _, poll_errors = await self.async_poll_sensors(keys, raise_errors=False)
 
         for i, sensor in enumerate(sensors):
             if errors[i]:
