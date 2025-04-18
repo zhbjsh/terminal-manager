@@ -499,7 +499,7 @@ class Manager(Collection, Synchronizer):
                 errors[i] = exc
                 continue
             if values[i] != sensor.value:
-                errors[i] = SensorError("Value not set correctly")
+                errors[i] = SensorError(sensor.key, "Value not set correctly")
 
         errors = tuple(errors)
 
