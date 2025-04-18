@@ -205,7 +205,7 @@ class Manager(Collection, Synchronizer):
         """
         self.state.update()
 
-        async def async_update_sensor_commands():
+        def get_commands():
             commands = [
                 command
                 for command in self.sensor_commands
@@ -213,13 +213,15 @@ class Manager(Collection, Synchronizer):
             ]
             if test and not self._disconnect_mode:
                 commands = commands or [_TEST_COMMAND]
-            await self.async_execute_commands(commands)
+            return commands
 
         if not self._disconnect_mode and self.state.connected:
             try:
-                await async_update_sensor_commands()
+                await self.async_execute_commands(get_commands())
             except ExecutionError:
-                pass
+                if not self.state.error:
+                    raise
+                self.state.update()
             else:
                 return
 
@@ -228,7 +230,7 @@ class Manager(Collection, Synchronizer):
         if not self._disconnect_mode:
             await self.async_connect()
 
-        await async_update_sensor_commands()
+        await self.async_execute_commands(get_commands())
 
     async def async_ping(self) -> None:
         """Ping.
@@ -315,6 +317,7 @@ class Manager(Collection, Synchronizer):
             raise ExecutionError("Timeout during command") from exc
         except ExecutionError:
             await self.async_reset()
+            self.state.handle_execute_error()
             raise
 
         if self._disconnect_mode:

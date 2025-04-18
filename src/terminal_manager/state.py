@@ -91,7 +91,9 @@ class State:
         if self.request == Request.CONNECT:
             self.request = None
         self.connected = True
-        self.error = False
+
+    def handle_execute_error(self) -> None:
+        self.error = True
 
     def handle_disconnect(self) -> None:
         self.connected = False
