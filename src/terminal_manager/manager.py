@@ -310,7 +310,7 @@ class Manager(Collection, Synchronizer):
             raise ExecutionError("Not connected")
 
         try:
-            output = await self._terminal.async_execute(
+            return await self._terminal.async_execute(
                 string, command_timeout or self._command_timeout
             )
         except TimeoutError as exc:
@@ -319,11 +319,9 @@ class Manager(Collection, Synchronizer):
             await self.async_reset()
             self.state.handle_execute_error()
             raise
-
-        if self._disconnect_mode:
-            await self.async_disconnect()
-
-        return output
+        finally:
+            if self._disconnect_mode:
+                await self.async_disconnect()
 
     async def async_execute_command(
         self,
