@@ -86,6 +86,10 @@ class Manager(Collection, Synchronizer):
         await self.async_disconnect()
 
     @property
+    def logger(self) -> logging.Logger:
+        return self._logger
+
+    @property
     def state(self) -> State:
         return self._state
 
