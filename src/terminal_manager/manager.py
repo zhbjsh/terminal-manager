@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass
@@ -22,6 +23,7 @@ DEFAULT_NAME = "Manager"
 DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
 DEFAULT_DISCONNECT_MODE = False
+DEFAULT_DISCONNECT_MODE_DELAY = 0
 DEFAULT_REQUEST_TIMEOUTS = {
     "turn_on": 60,
     "turn_off": 30,
@@ -54,6 +56,7 @@ class Manager(Collection, Synchronizer):
         command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
         allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
         disconnect_mode: bool = DEFAULT_DISCONNECT_MODE,
+        disconnect_mode_delay: int = DEFAULT_DISCONNECT_MODE_DELAY,
         request_timeouts: dict[str, int] = DEFAULT_REQUEST_TIMEOUTS,
         mac_address: str | None = None,
         collection: Collection | None = None,
@@ -70,9 +73,11 @@ class Manager(Collection, Synchronizer):
         self._command_timeout = command_timeout
         self._allow_turn_off = allow_turn_off
         self._disconnect_mode = disconnect_mode
+        self._disconnect_mode_delay = disconnect_mode_delay
         self._mac_address = mac_address
         self._logger = logger
         self._state = State(self, request_timeouts)
+        self._disconnector: asyncio.Task | None = None
 
     async def __aenter__(self):
         return self
@@ -171,6 +176,19 @@ class Manager(Collection, Synchronizer):
     @property
     def can_restart(self) -> bool:
         return self.can_execute and ActionKey.RESTART in self.action_commands_by_key
+
+    async def _async_disconnect_later(self) -> None:
+        if delay := self._disconnect_mode_delay:
+            await asyncio.sleep(delay)
+
+        await self.async_disconnect()
+        self._disconnector = None
+
+    def _schedule_disconnect(self):
+        if self._disconnector:
+            self._disconnector.cancel()
+
+        self._disconnector = asyncio.create_task(self._async_disconnect_later())
 
     def log(self, message: str) -> None:
         """Log a message."""
@@ -320,8 +338,8 @@ class Manager(Collection, Synchronizer):
             self.state.handle_execute_error()
             raise
         finally:
-            if self._disconnect_mode:
-                await self.async_disconnect()
+            if self._disconnect_mode and self.state.connected:
+                self._schedule_disconnect()
 
     async def async_execute_command(
         self,
