@@ -139,22 +139,17 @@ class Command:
 
         """
         commands_by_key = collection.sensor_commands_by_sensor_key
-        commands = []
 
-        def detect_loop(command: Command) -> None:
-            sub_commands = []
-            if command not in commands:
-                commands.append(command)
+        def detect_loop(command: Command, command_chain: list[Command]) -> None:
+            command_chain = [*command_chain, command]
             for key in command.sub_sensors:
                 if key not in commands_by_key:
                     raise CommandError(f"Sensor '{key}' not found")
-                if (sub_command := commands_by_key[key]) in commands:
+                if (sub_command := commands_by_key[key]) in command_chain:
                     raise CommandError(f"Loop detected: '{key}'")
-                if sub_command not in sub_commands:
-                    sub_commands.append(sub_command)
-                    detect_loop(sub_command)
+                detect_loop(sub_command, command_chain)
 
-        detect_loop(self)
+        detect_loop(self, [])
 
         if not self.renderer:
             return
