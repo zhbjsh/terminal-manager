@@ -4,6 +4,7 @@ from enum import StrEnum
 from time import time
 from typing import TYPE_CHECKING
 
+from .error import AuthenticationError, ConnectError, ExecutionError
 from .event import Event
 
 if TYPE_CHECKING:
@@ -29,7 +30,7 @@ class State:
     online: bool = False
     connected: bool = False
     request: Request | None = None
-    error: bool = False
+    error: ConnectError | ExecutionError | None = None
 
     def __init__(self, manager: Manager, request_timeouts: dict[str, int]) -> None:
         self._manager = manager
@@ -66,9 +67,9 @@ class State:
         return False
 
     def update(self) -> None:
-        """Reset error and set request to `None` if expired."""
-        if self.error:
-            self.error = False
+        """Reset error (except `AuthenticationError`) and request (if expired)."""
+        if self.error and not isinstance(self.error, AuthenticationError):
+            self.error = None
         if self.request_expired:
             self.request = None
 
@@ -84,16 +85,16 @@ class State:
             self.request = Request.CONNECT
         self.online = True
 
-    def handle_connect_error(self) -> None:
-        self.error = True
+    def handle_connect_error(self, exc: ConnectError) -> None:
+        self.error = exc
 
     def handle_connect_success(self) -> None:
         if self.request == Request.CONNECT:
             self.request = None
         self.connected = True
 
-    def handle_execute_error(self) -> None:
-        self.error = True
+    def handle_execute_error(self, exc: ExecutionError) -> None:
+        self.error = exc
 
     def handle_disconnect(self) -> None:
         self.connected = False

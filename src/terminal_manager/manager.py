@@ -293,9 +293,9 @@ class Manager(Collection, Synchronizer):
 
         try:
             await self._terminal.async_connect()
-        except ConnectError:
+        except ConnectError as exc:
             await self.async_reset()
-            self.state.handle_connect_error()
+            self.state.handle_connect_error(exc)
             raise
         else:
             self.state.handle_connect_success()
@@ -337,9 +337,9 @@ class Manager(Collection, Synchronizer):
             )
         except TimeoutError as exc:
             raise ExecutionError("Timeout during command") from exc
-        except ExecutionError:
+        except ExecutionError as exc:
             await self.async_reset()
-            self.state.handle_execute_error()
+            self.state.handle_execute_error(exc)
             raise
         finally:
             if self._disconnect_mode and self.state.connected:
