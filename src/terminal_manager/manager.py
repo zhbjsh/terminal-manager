@@ -289,7 +289,7 @@ class Manager(Collection, Synchronizer):
             raise ConnectError("Host is shutting down")
 
         if self.state.error:
-            raise ConnectError("Waiting for update after error")
+            raise ConnectError("Can't connect after error")
 
         try:
             await self._terminal.async_connect()
