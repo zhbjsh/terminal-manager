@@ -91,6 +91,43 @@ class Command:
         """Set of required and linked sensors."""
         return {*self.required_sensors, *self.linked_sensors}
 
+    def _check_loop(self, collection: Collection) -> None:
+        commands_by_key = collection.sensor_commands_by_sensor_key
+
+        def detect_loop(command: Command, command_chain: list[Command]) -> None:
+            command_chain = [*command_chain, command]
+            for key in command.sub_sensors:
+                if key not in commands_by_key:
+                    raise CommandError(f"Sensor '{key}' not found")
+                if (sub_command := commands_by_key[key]) in command_chain:
+                    raise CommandError(f"Loop detected: '{key}'")
+                detect_loop(sub_command, command_chain)
+
+        detect_loop(self, [])
+
+    def _check_renderer(self) -> None:
+        if not self.renderer:
+            return
+
+        try:
+            string = self.renderer(self.string)
+        except Exception as exc:
+            raise CommandError(f"Failed to render string: '{exc}'") from exc
+
+        if not isinstance(string, str):
+            raise CommandError(f"Renderer returned {type(string)} instead of {str}")
+
+    def check(self, collection: Collection) -> None:
+        """Check configuration.
+
+        Raises:
+            `SensorError`
+            `CommandError`
+
+        """
+        self._check_loop(collection)
+        self._check_renderer()
+
     async def async_render_string(
         self,
         manager: Manager,
@@ -129,38 +166,6 @@ class Command:
             return self.renderer(string)
 
         return string
-
-    def check(self, collection: Collection) -> None:
-        """Check configuration.
-
-        Raises:
-            `SensorError`
-            `CommandError`
-
-        """
-        commands_by_key = collection.sensor_commands_by_sensor_key
-
-        def detect_loop(command: Command, command_chain: list[Command]) -> None:
-            command_chain = [*command_chain, command]
-            for key in command.sub_sensors:
-                if key not in commands_by_key:
-                    raise CommandError(f"Sensor '{key}' not found")
-                if (sub_command := commands_by_key[key]) in command_chain:
-                    raise CommandError(f"Loop detected: '{key}'")
-                detect_loop(sub_command, command_chain)
-
-        detect_loop(self, [])
-
-        if not self.renderer:
-            return
-
-        try:
-            string = self.renderer(self.string)
-        except Exception as exc:
-            raise CommandError(f"Failed to render string: '{exc}'") from exc
-
-        if not isinstance(string, str):
-            raise CommandError(f"Renderer returned {type(string)} instead of {str}")
 
     def reset(self, manager: Manager) -> None:
         """Reset."""
@@ -226,14 +231,7 @@ class SensorCommand(Command):
             if command_sensor.key != PLACEHOLDER_KEY
         }
 
-    def check(self, collection: Collection) -> None:
-        """Check command configuration.
-
-        Raises:
-            `SensorError`
-            `CommandError`
-
-        """
+    def _check_sensors(self, collection: Collection) -> None:
         dynamic = False
 
         for sensor in self.sensors:
@@ -243,6 +241,20 @@ class SensorCommand(Command):
                 raise CommandError(f"Sensor '{sensor.key}' must be dynamic")
             sensor.check(collection)
 
+    def _check_required_variables(self) -> None:
+        if self.required_variables:
+            raise CommandError("Variables not allowed in sensor commands")
+
+    def check(self, collection: Collection) -> None:
+        """Check command configuration.
+
+        Raises:
+            `SensorError`
+            `CommandError`
+
+        """
+        self._check_sensors(collection)
+        self._check_required_variables()
         super().check(collection)
 
     def remove_sensor(self, key: str) -> None:

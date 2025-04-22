@@ -130,6 +130,11 @@ class Sensor:
             else:
                 self._remove_child(child)
 
+    def _check_linked_sensors(self, collection: Collection) -> None:
+        for key in self.linked_sensors:
+            if not collection.sensors_by_key.get(key):
+                raise SensorError(self.key, f"'{key}' not found")
+
     def check(self, collection: Collection) -> None:
         """Check configuration.
 
@@ -137,9 +142,7 @@ class Sensor:
             `SensorError`
 
         """
-        for key in self.linked_sensors:
-            if not collection.sensors_by_key.get(key):
-                raise SensorError(self.key, f"'{key}' not found")
+        self._check_linked_sensors(collection)
 
     def update(self, manager: Manager, data: str | list[DynamicData] | None) -> None:
         """Update and notify `on_update` subscribers."""
@@ -323,9 +326,7 @@ class VersionSensor(Sensor):
 
         return child
 
-    def check(self, collection: Collection) -> None:
-        super().check(collection)
-
+    def _check_latest(self, collection: Collection) -> None:
         if not (key := self.latest):
             return
 
@@ -339,3 +340,7 @@ class VersionSensor(Sensor):
 
         if sensor.command_set:
             raise SensorError(self.key, f"'{key}' has 'command_set' attribute")
+
+    def check(self, collection: Collection) -> None:
+        super().check(collection)
+        self._check_latest(collection)
