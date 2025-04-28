@@ -32,7 +32,7 @@ class State:
     request: Request | None = None
     error: ConnectError | ExecutionError | None = None
 
-    def __init__(self, manager: Manager, request_timeouts: dict[str, int]) -> None:
+    def __init__(self, manager: Manager, request_timeouts: dict[Request, int]) -> None:
         self._manager = manager
         self._request_timeouts = request_timeouts
         self._request_timestamp = time()

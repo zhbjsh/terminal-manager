@@ -12,7 +12,7 @@ from .command import Command, SensorCommand
 from .default_collections.const import ACTION_NAMES, SENSOR_NAMES, ActionKey, SensorKey
 from .error import ConnectError, ExecutionError, OfflineError, SensorError
 from .sensor import Sensor
-from .state import State
+from .state import Request, State
 from .synchronizer import Synchronizer
 from .terminal import Terminal
 
@@ -25,10 +25,10 @@ DEFAULT_ALLOW_TURN_OFF = False
 DEFAULT_DISCONNECT_MODE = False
 DEFAULT_DISCONNECT_MODE_DELAY = 0
 DEFAULT_REQUEST_TIMEOUTS = {
-    "turn_on": 60,
-    "turn_off": 30,
-    "restart": 30,
-    "connect": 30,
+    Request.TURN_ON: 60,
+    Request.TURN_OFF: 30,
+    Request.RESTART: 30,
+    Request.CONNECT: 30,
 }
 
 ExecuteErrorType = ConnectError | ExecutionError
@@ -57,7 +57,7 @@ class Manager(Collection, Synchronizer):
         allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
         disconnect_mode: bool = DEFAULT_DISCONNECT_MODE,
         disconnect_mode_delay: int = DEFAULT_DISCONNECT_MODE_DELAY,
-        request_timeouts: dict[str, int] = DEFAULT_REQUEST_TIMEOUTS,
+        request_timeouts: dict[Request, int] = DEFAULT_REQUEST_TIMEOUTS,
         mac_address: str | None = None,
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
