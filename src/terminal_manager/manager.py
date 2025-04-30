@@ -12,7 +12,7 @@ from .command import Command, SensorCommand
 from .default_collections.const import ACTION_NAMES, SENSOR_NAMES, ActionKey, SensorKey
 from .error import ConnectError, ExecutionError, OfflineError, SensorError
 from .sensor import Sensor
-from .state import Request, State
+from .state import State
 from .synchronizer import Synchronizer
 from .terminal import Terminal
 
@@ -24,12 +24,9 @@ DEFAULT_COMMAND_TIMEOUT = 15
 DEFAULT_ALLOW_TURN_OFF = False
 DEFAULT_DISCONNECT_MODE = False
 DEFAULT_DISCONNECT_MODE_DELAY = 0
-DEFAULT_REQUEST_TIMEOUTS = {
-    Request.TURN_ON: 60,
-    Request.TURN_OFF: 30,
-    Request.RESTART: 30,
-    Request.CONNECT: 30,
-}
+DEFAULT_TURN_ON_TIMEOUT = 60
+DEFAULT_TURN_OFF_TIMEOUT = 30
+DEFAULT_CONNECT_TIMEOUT = 30
 
 ExecuteErrorType = ConnectError | ExecutionError
 SetErrorType = ConnectError | ExecutionError | SensorError | TypeError | ValueError
@@ -54,10 +51,12 @@ class Manager(Collection, Synchronizer):
         *,
         name: str = DEFAULT_NAME,
         command_timeout: int = DEFAULT_COMMAND_TIMEOUT,
+        turn_on_timeout: int = DEFAULT_TURN_ON_TIMEOUT,
+        turn_off_timeout: int = DEFAULT_TURN_OFF_TIMEOUT,
+        connect_timeout: int = DEFAULT_CONNECT_TIMEOUT,
         allow_turn_off: bool = DEFAULT_ALLOW_TURN_OFF,
         disconnect_mode: bool = DEFAULT_DISCONNECT_MODE,
         disconnect_mode_delay: int = DEFAULT_DISCONNECT_MODE_DELAY,
-        request_timeouts: dict[Request, int] = DEFAULT_REQUEST_TIMEOUTS,
         mac_address: str | None = None,
         collection: Collection | None = None,
         logger: logging.Logger = _LOGGER,
@@ -76,7 +75,7 @@ class Manager(Collection, Synchronizer):
         self._disconnect_mode_delay = disconnect_mode_delay
         self._mac_address = mac_address
         self._logger = logger
-        self._state = State(self, request_timeouts)
+        self._state = State(self, turn_on_timeout, turn_off_timeout, connect_timeout)
         self._disconnector: asyncio.Task | None = None
 
     async def __aenter__(self):
