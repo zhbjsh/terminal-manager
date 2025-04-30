@@ -181,18 +181,18 @@ class Manager(Collection, Synchronizer):
     def can_restart(self) -> bool:
         return self.can_execute and ActionKey.RESTART in self.action_commands_by_key
 
-    async def _async_disconnect_later(self) -> None:
-        if delay := self._disconnect_mode_delay:
-            await asyncio.sleep(delay)
-
-        await self.async_disconnect()
-        self._disconnector = None
-
-    def _schedule_disconnect(self):
+    def _schedule_disconnect(self) -> None:
         if self._disconnector:
             self._disconnector.cancel()
 
-        self._disconnector = asyncio.create_task(self._async_disconnect_later())
+        async def func() -> None:
+            if delay := self._disconnect_mode_delay:
+                await asyncio.sleep(delay)
+
+            await self.async_disconnect()
+            self._disconnector = None
+
+        self._disconnector = asyncio.create_task(func())
 
     def log(self, message: str) -> None:
         """Log a message."""
