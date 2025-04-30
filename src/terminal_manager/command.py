@@ -98,7 +98,7 @@ class Command:
             command_chain = [*command_chain, command]
             for key in command.sub_sensors:
                 if key not in commands_by_key:
-                    raise CommandError(f"Sensor '{key}' not found")
+                    continue
                 if (sub_command := commands_by_key[key]) in command_chain:
                     raise CommandError(f"Loop detected: '{key}'")
                 detect_loop(sub_command, command_chain)
@@ -149,7 +149,10 @@ class Command:
         except Exception as exc:
             raise ExecutionError(f"Failed to substitute variables: {exc}") from exc
 
-        sensors, _ = await manager.async_poll_sensors(self.required_sensors)
+        try:
+            sensors, _ = await manager.async_poll_sensors(self.required_sensors)
+        except KeyError as exc:
+            raise ExecutionError(f"Required sensor not found: {exc}") from exc
 
         for sensor in sensors:
             if sensor.value is not None:

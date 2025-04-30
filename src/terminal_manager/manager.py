@@ -372,7 +372,12 @@ class Manager(Collection, Synchronizer):
 
         self.log(f"{string} => {output.stdout}, {output.stderr}, {output.code}")
         command.handle_success(self, output)
-        await self.async_poll_sensors(command.linked_sensors)
+
+        try:
+            await self.async_poll_sensors(command.linked_sensors)
+        except KeyError as exc:
+            raise ExecutionError(f"Linked sensor not found: {exc}") from exc
+
         return output
 
     async def async_execute_commands(
