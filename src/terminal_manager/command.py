@@ -91,15 +91,29 @@ class Command:
         """Set of required and linked sensors."""
         return {*self.required_sensors, *self.linked_sensors}
 
-    def _check_loop(self, collection: Collection) -> None:
+    def _check_sub_sensors(self, collection: Collection) -> None:
         commands_by_key = collection.sensor_commands_by_sensor_key
+        sensors_by_key = collection.sensors_by_key
+
+        def get_parent_key(child_key: str) -> str | None:
+            parent_key = None
+            for key, sensor in sensors_by_key.items():
+                if parent_key and len(parent_key) > len(key):
+                    continue
+                if sensor.dynamic and child_key.startswith(f"{key}_"):
+                    parent_key = key
+            return parent_key
 
         def detect_loop(command: Command, command_chain: list[Command]) -> None:
             command_chain = [*command_chain, command]
             for key in command.sub_sensors:
-                if key not in commands_by_key:
-                    continue
-                if (sub_command := commands_by_key[key]) in command_chain:
+                if key in commands_by_key:
+                    sub_command = commands_by_key[key]
+                elif parent_key := get_parent_key(key):
+                    sub_command = commands_by_key[parent_key]
+                else:
+                    raise CommandError(f"Sensor not found: '{key}'")
+                if sub_command in command_chain:
                     raise CommandError(f"Loop detected: '{key}'")
                 detect_loop(sub_command, command_chain)
 
@@ -125,7 +139,7 @@ class Command:
             `CommandError`
 
         """
-        self._check_loop(collection)
+        self._check_sub_sensors(collection)
         self._check_renderer()
 
     async def async_render_string(
