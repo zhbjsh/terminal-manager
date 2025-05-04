@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from terminal_manager.collection import Collection
 from terminal_manager.command import ActionCommand, SensorCommand
+from terminal_manager.const import ActionKey, SensorKey
 from terminal_manager.sensor import BinarySensor, NumberSensor, TextSensor
-
-from .const import ActionKey, SensorKey
 
 windows_ps = Collection(
     "Windows (Power Shell)",
