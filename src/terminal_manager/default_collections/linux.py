@@ -22,8 +22,10 @@ linux = Collection(
     [
         # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "x=$(/sbin/ip route show default 2>/dev/null) && awk '{print $5}' <<<$x || "
-            "x=$(/sbin/route -n 2>/dev/null) && awk '/^0.0.0.0/ {print $NF}' <<<$x",
+            "x=$(/sbin/ip route show default 2>/dev/null) && \\\n"
+            "echo \"$x\" | awk '{print $5}' || \\\n"
+            "x=$(/sbin/route -n 2>/dev/null) && \\\n"
+            "echo \"$x\" | awk '/^0.0.0.0/ {print $NF}'",
             sensors=[
                 TextSensor(key=SensorKey.NETWORK_INTERFACE),
             ],
@@ -71,12 +73,14 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'x=$(/sbin/dmidecode -t system 2>/dev/null) && awk -F ": " \''
-            "/Product Name:/ {a=$2} "
-            "/Version:/ {b=$2} "
-            "/Manufacturer:/ {c=$2} "
-            "/Serial Number:/ {d=$2} "
-            'END {print a"\\n"b"\\n"c"\\n"d}\' <<<$x',
+            "x=$(/sbin/dmidecode -t system 2>/dev/null) && \\\n"
+            'echo "$x" | awk -F ": " \' \\\n'
+            "  /Product Name:/ {a=$2} \\\n"
+            "  /Version:/ {b=$2} \\\n"
+            "  /Manufacturer:/ {c=$2} \\\n"
+            "  /Serial Number:/ {d=$2} \\\n"
+            '  END {print a"\\n"b"\\n"c"\\n"d} \\\n'
+            "'",
             sensors=[
                 TextSensor(key=SensorKey.DEVICE_NAME),
                 TextSensor(key=SensorKey.DEVICE_MODEL),
@@ -85,12 +89,13 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'x=$(cat /proc/cpuinfo) && awk -F ": " \''
-            "/^model name/ {a=$2} "
-            "/^processor/ {b=$2+1} "
-            "/^Hardware/ {c=$2} "
-            "/^Model/ {d=$2} "
-            'END {print a"\\n"b"\\n"c"\\n"d}\' <<<$x',
+            'cat /proc/cpuinfo | awk -F ": " \' \\\n'
+            "  /^model name/ {a=$2} \\\n"
+            "  /^processor/ {b=$2+1} \\\n"
+            "  /^Hardware/ {c=$2} \\\n"
+            "  /^Model/ {d=$2} \\\n"
+            '  END {print a"\\n"b"\\n"c"\\n"d} \\\n'
+            "'",
             sensors=[
                 TextSensor(key=SensorKey.CPU_NAME),
                 NumberSensor(key=SensorKey.CPU_CORES),
@@ -99,23 +104,26 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "x=$(free -k) && awk '/^Mem:/ {print $2}' <<<$x",
+            "cat /proc/meminfo | awk '/MemTotal/ {print $2}'",
             sensors=[
                 NumberSensor(key=SensorKey.TOTAL_MEMORY, unit="KiB"),
             ],
         ),
         SensorCommand(
-            "x=$(free -k) && awk '/^Mem:/ {print $4}' <<<$x",
+            "cat /proc/meminfo | awk '/MemFree/ {print $2}'",
             interval=30,
             sensors=[
                 NumberSensor(key=SensorKey.FREE_MEMORY, unit="KiB"),
             ],
         ),
         SensorCommand(
-            "x=$(df -k) && awk '/^\\/dev\\// {"
-            'b=$4; $1=$2=$3=$4=$5=""; '
-            'gsub(/^ +/, ""); '
-            'print $0"|"b}\' <<<$x',
+            "x=$(df -k) && \\\n"
+            'echo "$x" | awk \'/^\\/dev\\// { \\\n'
+            "  b=$4; \\\n"
+            '  $1=$2=$3=$4=$5=""; \\\n'
+            '  gsub(/^ +/, ""); \\\n'
+            '  print $0"|"b \\\n'
+            "}'",
             interval=60,
             separator="|",
             sensors=[
@@ -123,17 +131,25 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "x=$(vmstat 1 2) && "
-            "y=$(awk 'END {print $15}' <<<$x) && "
-            "echo $((100-$y))",
+            "read _ u n s i w q o t _ < /proc/stat; \\\n"
+            "i1=$((i+w)); \\\n"
+            "t1=$((u+n+s+q+o+t+i1)); \\\n"
+            "sleep 1; \\\n"
+            "read _ u n s i w q o t _ < /proc/stat; \\\n"
+            "i2=$((i+w)); \\\n"
+            "t2=$((u+n+s+q+o+t+i2)); \\\n"
+            "id=$((i2-i1)); \\\n"
+            "td=$((t2-t1)); \\\n"
+            "echo $((100*(td-id)/td))",
             interval=30,
             sensors=[
                 NumberSensor(key=SensorKey.CPU_LOAD, unit="%"),
             ],
         ),
         SensorCommand(
-            "for x in $(ls -d /sys/class/thermal/thermal_zone*); do "
-            "echo $(cat $x/type),$(($(cat $x/temp)/1000)); done",
+            "for x in /sys/class/thermal/thermal_zone*; do \\\n"
+            '  echo "$(cat $x/type),$(($(cat $x/temp)/1000))"; \\\n'
+            "done",
             interval=60,
             separator=",",
             sensors=[
@@ -141,7 +157,7 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "x=$(ps -e) && awk 'END {print NR-1}' <<<$x",
+            "printf '%s\\n' /proc/[0-9]* | wc -l",
             interval=60,
             sensors=[
                 NumberSensor(key=SensorKey.PROCESSES),
