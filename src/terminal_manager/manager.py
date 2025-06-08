@@ -467,6 +467,7 @@ class Manager(Collection, Synchronizer):
             `KeyError`
             `ConnectError`
             `ExecutionError`
+            `SensorError`
             `TypeError`
             `ValueError`
 
