@@ -22,9 +22,9 @@ linux = Collection(
     [
         # TODO: OS_ARCHITECTURE
         SensorCommand(
-            "x=$(/sbin/ip route show default 2>/dev/null) && \\\n"
-            "echo \"$x\" | awk '{print $5}' || \\\n"
-            "x=$(/sbin/route -n 2>/dev/null) && \\\n"
+            "x=$(/sbin/ip route show default 2>/dev/null) && "
+            "echo \"$x\" | awk '{print $5}' || "
+            "x=$(/sbin/route -n 2>/dev/null) && "
             "echo \"$x\" | awk '/^0.0.0.0/ {print $NF}'",
             sensors=[
                 TextSensor(key=SensorKey.NETWORK_INTERFACE),
@@ -73,14 +73,13 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "x=$(/sbin/dmidecode -t system 2>/dev/null) && \\\n"
-            'echo "$x" | awk -F ": " \' \\\n'
-            "  /Product Name:/ {a=$2} \\\n"
-            "  /Version:/ {b=$2} \\\n"
-            "  /Manufacturer:/ {c=$2} \\\n"
-            "  /Serial Number:/ {d=$2} \\\n"
-            '  END {print a"\\n"b"\\n"c"\\n"d} \\\n'
-            "'",
+            "x=$(/sbin/dmidecode -t system 2>/dev/null) && "
+            'echo "$x" | awk -F ": " \''
+            "/Product Name:/ {a=$2} "
+            "/Version:/ {b=$2} "
+            "/Manufacturer:/ {c=$2} "
+            "/Serial Number:/ {d=$2} "
+            'END {print a"\\n"b"\\n"c"\\n"d}\'',
             sensors=[
                 TextSensor(key=SensorKey.DEVICE_NAME),
                 TextSensor(key=SensorKey.DEVICE_MODEL),
@@ -89,13 +88,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            'cat /proc/cpuinfo | awk -F ": " \' \\\n'
-            "  /^model name/ {a=$2} \\\n"
-            "  /^processor/ {b=$2+1} \\\n"
-            "  /^Hardware/ {c=$2} \\\n"
-            "  /^Model/ {d=$2} \\\n"
-            '  END {print a"\\n"b"\\n"c"\\n"d} \\\n'
-            "'",
+            'cat /proc/cpuinfo | awk -F ": " \''
+            "/^model name/ {a=$2} "
+            "/^processor/ {b=$2+1} "
+            "/^Hardware/ {c=$2} "
+            "/^Model/ {d=$2} "
+            'END {print a"\\n"b"\\n"c"\\n"d}\'',
             sensors=[
                 TextSensor(key=SensorKey.CPU_NAME),
                 NumberSensor(key=SensorKey.CPU_CORES),
@@ -117,13 +115,12 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "x=$(df -k) && \\\n"
-            'echo "$x" | awk \'/^\\/dev\\// { \\\n'
-            "  b=$4; \\\n"
-            '  $1=$2=$3=$4=$5=""; \\\n'
-            '  gsub(/^ +/, ""); \\\n'
-            '  print $0"|"b \\\n'
-            "}'",
+            "x=$(df -k) && "
+            'echo "$x" | awk \'/^\\/dev\\// {'
+            "b=$4; "
+            '$1=$2=$3=$4=$5=""; '
+            'gsub(/^ +/, ""); '
+            'print $0"|"b}\'',
             interval=60,
             separator="|",
             sensors=[
@@ -131,15 +128,15 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "read _ u n s i w q o t _ < /proc/stat; \\\n"
-            "i1=$((i+w)); \\\n"
-            "t1=$((u+n+s+q+o+t+i1)); \\\n"
-            "sleep 1; \\\n"
-            "read _ u n s i w q o t _ < /proc/stat; \\\n"
-            "i2=$((i+w)); \\\n"
-            "t2=$((u+n+s+q+o+t+i2)); \\\n"
-            "id=$((i2-i1)); \\\n"
-            "td=$((t2-t1)); \\\n"
+            "read _ u n s i w q o t _ < /proc/stat; "
+            "i1=$((i+w)); "
+            "t1=$((u+n+s+q+o+t+i1)); "
+            "sleep 1; "
+            "read _ u n s i w q o t _ < /proc/stat; "
+            "i2=$((i+w)); "
+            "t2=$((u+n+s+q+o+t+i2)); "
+            "id=$((i2-i1)); "
+            "td=$((t2-t1)); "
             "echo $((100*(td-id)/td))",
             interval=30,
             sensors=[
@@ -147,8 +144,8 @@ linux = Collection(
             ],
         ),
         SensorCommand(
-            "for x in /sys/class/thermal/thermal_zone*; do \\\n"
-            '  echo "$(cat $x/type),$(($(cat $x/temp)/1000))"; \\\n'
+            "for x in /sys/class/thermal/thermal_zone*; do "
+            'echo "$(cat $x/type),$(($(cat $x/temp)/1000))"; '
             "done",
             interval=60,
             separator=",",
